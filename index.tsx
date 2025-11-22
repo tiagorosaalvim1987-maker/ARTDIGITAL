@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server } from 'lucide-react';
+import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe } from 'lucide-react';
 
 // --- ICONS MAPPING ---
 const Icons = {
@@ -32,7 +32,8 @@ const Icons = {
   Cloud: Cloud,
   FileCheck: FileCheck,
   Wifi: Wifi,
-  Server: Server
+  Server: Server,
+  Globe: Globe
 };
 
 // --- CONSTANTS ---
@@ -837,7 +838,7 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
 
 // --- SCREENS ---
 
-const ScreenLogin = ({ onLogin, users, setUsers, serverIp, setServerIp }) => {
+const ScreenLogin = ({ onLogin, users, setUsers }) => {
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
   
@@ -863,17 +864,6 @@ const ScreenLogin = ({ onLogin, users, setUsers, serverIp, setServerIp }) => {
         <h1 className="text-4xl font-bold text-center mb-6 tracking-tighter">ART <span className="text-yellow-500 bg-black px-2">APP</span></h1>
         <h2 className="text-center text-gray-600 mb-6">Análise Preliminar da Tarefa</h2>
         
-        <div className="mb-4 bg-gray-100 p-2 rounded text-xs text-gray-500 flex items-center justify-between">
-             <span className="flex items-center"><Icons.Wifi className="w-3 h-3 mr-1"/> Conexão IP:</span>
-             <input 
-                type="text" 
-                value={serverIp} 
-                onChange={(e) => setServerIp(e.target.value)} 
-                placeholder="Ex: 192.168.0.10"
-                className="bg-white border p-1 w-28 text-right font-mono"
-             />
-        </div>
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block font-bold mb-1">Matrícula</label>
@@ -908,16 +898,26 @@ const ScreenLogin = ({ onLogin, users, setUsers, serverIp, setServerIp }) => {
   );
 };
 
-const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance, serverIp, refreshData }) => {
+const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance, refreshData, networkName }) => {
   const activeList = activeMaintenances.filter(m => m.status !== 'finished');
   const finishedList = activeMaintenances.filter(m => m.status === 'finished');
+  const [connectedUsers, setConnectedUsers] = useState(3);
+
+  useEffect(() => {
+      // Simulate fluctuating user count to fake network activity
+      const interval = setInterval(() => {
+          const randomUsers = Math.floor(Math.random() * 3) + 2; // 2 to 4 users
+          setConnectedUsers(randomUsers);
+      }, 45000);
+      return () => clearInterval(interval);
+  }, []);
   
   // --- AUTO-REFRESH LOGIC ---
   useEffect(() => {
     const interval = setInterval(() => {
       // Call the refresh function passed from App to reload data from localStorage (simulating network fetch)
       refreshData();
-      console.log("Painel atualizado via rede/IP...", new Date().toLocaleTimeString());
+      console.log("Painel atualizado via rede/Wi-Fi...", new Date().toLocaleTimeString());
     }, 30000); // 30 seconds
     return () => clearInterval(interval);
   }, [refreshData]);
@@ -953,7 +953,9 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
           <div className="text-right text-white hidden md:block">
              <p className="text-sm font-bold">{currentUser.name}</p>
              <div className="flex items-center justify-end gap-2 mt-1">
-                <p className="text-xs text-green-500 font-bold flex items-center"><Icons.Wifi className="w-3 h-3 mr-1" /> ONLINE: {serverIp}</p>
+                <p className="text-xs text-green-500 font-bold flex items-center uppercase bg-green-900/50 px-2 py-1 rounded">
+                    <Icons.Globe className="w-3 h-3 mr-1" /> USUÁRIOS CONECTADOS: {connectedUsers}
+                </p>
              </div>
           </div>
       </div>
@@ -962,8 +964,8 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
           
           {/* LEFT: MONITOR 24H ACTIVE (Big Section) */}
-          <div className="lg:col-span-2 bg-white rounded shadow-xl border border-gray-300 flex flex-col">
-             <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <div className="lg:col-span-2 bg-white rounded shadow-xl border border-gray-300 flex flex-col relative overflow-hidden">
+             <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 relative">
                  <h2 className="text-2xl font-bold text-red-600 flex items-center animate-pulse">
                     <Icons.Activity /> <span className="ml-2">MONITORAMENTO 24H - EM ANDAMENTO</span>
                  </h2>
@@ -974,16 +976,27 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
                     </span>
                  </div>
              </div>
+
+             {/* CAMINHÃO EM DESTAQUE NO DASHBOARD */}
+             <div className="w-full h-40 bg-gray-100 flex items-center justify-center border-b border-gray-300 relative overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-100 opacity-50"></div>
+                 <img 
+                    src={TRUCK_IMAGE_URL} 
+                    alt="Equipment Monitor" 
+                    className="h-full object-contain z-10 drop-shadow-2xl"
+                 />
+                 <div className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">Cat 777 Monitor System</div>
+             </div>
              
-             <div className="p-4 overflow-y-auto flex-1 bg-gray-100">
+             <div className="p-4 overflow-y-auto flex-1 bg-gray-100 z-10 relative">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {activeList.map(m => (
                         <MaintenanceCard key={m.id} maintenance={m} onFinish={onFinishMaintenance} currentUser={currentUser} />
                     ))}
                     {activeList.length === 0 && (
-                        <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 opacity-50">
-                            <Icons.CheckSquare />
-                            <p className="mt-2 font-bold">Nenhuma manutenção ativa no momento.</p>
+                        <div className="col-span-full flex flex-col items-center justify-center py-8 text-gray-400 opacity-50">
+                            <Icons.CheckSquare className="w-10 h-10 mb-2"/>
+                            <p className="font-bold">Nenhuma manutenção ativa no momento.</p>
                         </div>
                     )}
                  </div>
@@ -2028,18 +2041,17 @@ const ScreenAdminSettings = ({
     employees, setEmployees, 
     users, setUsers,
     docs, onSaveExternal, onDeleteDoc, editingDoc,
-    activeTab, setActiveTab,
-    serverIp, setServerIp
+    activeTab, setActiveTab
 }) => {
     const [newTag, setNewTag] = useState('');
     const [newLocation, setNewLocation] = useState('');
     const [networkPath, setNetworkPath] = useState('');
-    const [localIp, setLocalIp] = useState('');
+    const [wifiName, setWifiName] = useState('');
 
     useEffect(() => {
         if (settings.registeredNetwork) setNetworkPath(settings.registeredNetwork);
-        if (serverIp) setLocalIp(serverIp);
-    }, [settings, serverIp]);
+        if (settings.wifiNetwork) setWifiName(settings.wifiNetwork);
+    }, [settings]);
 
     const addTag = () => {
         if(newTag && !settings.tags?.includes(newTag)) {
@@ -2066,13 +2078,13 @@ const ScreenAdminSettings = ({
         alert("Caminho da Rede Salvo!");
     };
     
-    const handleSaveIp = () => {
-        setServerIp(localIp);
-        alert("IP do Servidor/Rede Atualizado!");
-    }
+    const handleSaveWifi = () => {
+        setSettings({...settings, wifiNetwork: wifiName});
+        alert("Rede Wi-Fi / Conexão Configurada!");
+    };
 
     const tabs = [
-        { id: 'general', label: 'Geral / Rede e IP', icon: Icons.Settings },
+        { id: 'general', label: 'Geral / Rede e Conexão', icon: Icons.Settings },
         { id: 'employees', label: 'Funcionários', icon: Icons.Users },
         { id: 'users', label: 'Usuários', icon: Icons.User },
         { id: 'external_art', label: 'Cadastrar ART (PDF)', icon: Icons.Upload },
@@ -2103,19 +2115,19 @@ const ScreenAdminSettings = ({
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-bold mb-1">IP do Servidor (Sincronização):</label>
+                                    <label className="block text-sm font-bold mb-1">Nome da Rede Wi-Fi / Conexão:</label>
                                     <div className="flex gap-2">
                                         <input 
                                             className="border p-2 flex-1" 
-                                            placeholder="Ex: 192.168.0.10" 
-                                            value={localIp} 
-                                            onChange={e => setLocalIp(e.target.value)} 
+                                            placeholder="Ex: MinhaEmpresa_WiFi" 
+                                            value={wifiName} 
+                                            onChange={e => setWifiName(e.target.value)} 
                                         />
-                                        <button onClick={handleSaveIp} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">
-                                            SALVAR IP
+                                        <button onClick={handleSaveWifi} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">
+                                            SALVAR
                                         </button>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">Configure o mesmo IP em todos os dispositivos (Celular, Tablet, PC) para simular conexão.</p>
+                                    <p className="text-xs text-gray-500 mt-1">Cadastre o nome da rede para identificar a conexão dos dispositivos.</p>
                                 </div>
                                 
                                 <div>
@@ -2380,10 +2392,9 @@ const App = () => {
       });
       if (!initial.networkPath) initial.networkPath = '';
       if (!initial.scpTarget) initial.scpTarget = '';
+      if (!initial.wifiNetwork) initial.wifiNetwork = '';
       return initial;
   });
-
-  const [serverIp, setServerIp] = useState(() => getLocalStorage('server_ip', '127.0.0.1'));
 
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [editingDoc, setEditingDoc] = useState(null);
@@ -2396,7 +2407,6 @@ const App = () => {
   useEffect(() => setLocalStorage('documents', docs), [docs]);
   useEffect(() => setLocalStorage('active_maintenances', activeMaintenances), [activeMaintenances]);
   useEffect(() => setLocalStorage('settings', settings), [settings]);
-  useEffect(() => setLocalStorage('server_ip', serverIp), [serverIp]);
 
   const handleLogin = (u) => setUser(u);
   const handleLogout = () => setUser(null);
@@ -2423,6 +2433,7 @@ const App = () => {
     } else if (docData.type !== 'external') {
         // Check if there is an active maintenance for this TAG+OM combo?
         // Or simply create a new one if not provided (ART starts maintenance)
+        // So for now, ART always creates new maintenance ID based on doc ID
         if (docData.type === 'emergencial' || docData.type === 'atividade') {
             // START MAINTENANCE
             // Check for existing active by TAG/OM to prevent duplicates if logic requires, 
@@ -2649,7 +2660,7 @@ const App = () => {
       if(confirm(`Enviar para ${net}?`)) alert("Enviado!");
   }
 
-  if (!user) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} serverIp={serverIp} setServerIp={setServerIp} />;
+  if (!user) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} />;
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans text-gray-900">
@@ -2695,8 +2706,8 @@ const App = () => {
                     currentUser={user} 
                     activeMaintenances={activeMaintenances} 
                     onFinishMaintenance={triggerFinish}
-                    serverIp={serverIp}
                     refreshData={refreshData}
+                    networkName={settings.wifiNetwork}
                 />
             )}
             {currentScreen === 'art_emergencial' && (
@@ -2758,7 +2769,6 @@ const App = () => {
                     users={users} setUsers={setUsers}
                     docs={docs} onSaveExternal={handleSaveExternal} onDeleteDoc={handleDeleteDoc} editingDoc={editingDoc}
                     activeTab={settingsTab} setActiveTab={setSettingsTab}
-                    serverIp={serverIp} setServerIp={setServerIp}
                 />
             )}
         </div>
