@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe } from 'lucide-react';
+import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft } from 'lucide-react';
 
 // --- ICONS MAPPING ---
 const Icons = {
@@ -33,7 +33,12 @@ const Icons = {
   FileCheck: FileCheck,
   Wifi: Wifi,
   Server: Server,
-  Globe: Globe
+  Globe: Globe,
+  Database: Database,
+  Cpu: Cpu,
+  Radio: Radio,
+  Layers: Layers,
+  ArrowRightLeft: ArrowRightLeft
 };
 
 // --- CONSTANTS ---
@@ -767,7 +772,7 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
 
 // --- SCREENS ---
 
-const ScreenLogin = ({ onLogin, users, setUsers }) => {
+const ScreenLogin = ({ onLogin, users, setUsers, logEvent }) => {
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -775,17 +780,24 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
   
   const handleLogin = (e) => {
     e.preventDefault();
-    const user = users.find(u => u.matricula === matricula && u.password === password);
-    if (user) {
-      onLogin(user);
-    } else {
-      alert('Credenciais inválidas');
-    }
+    logEvent({ service: 'AuthService', type: 'API', message: `POST /api/auth/login user=${matricula}`, status: 'PENDING' });
+    
+    setTimeout(() => {
+        const user = users.find(u => u.matricula === matricula && u.password === password);
+        if (user) {
+          logEvent({ service: 'AuthService', type: 'API', message: `POST /api/auth/login success`, status: '200 OK' });
+          onLogin(user);
+        } else {
+          logEvent({ service: 'AuthService', type: 'API', message: `POST /api/auth/login failed`, status: '401 UNAUTHORIZED' });
+          alert('Credenciais inválidas');
+        }
+    }, 600);
   };
 
   const handleCreateAdmin = () => {
     const newUser = { name: 'Administrador', matricula: 'admin', password: 'admin', role: 'admin' };
     setUsers([newUser]);
+    logEvent({ service: 'UserService', type: 'DB', message: 'INSERT INTO users (admin)', status: 'SUCCESS' });
     alert('Admin criado! User: admin / Pass: admin');
   };
 
@@ -796,6 +808,7 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
     // Simulação de verificação
     const userExists = users.some(u => u.matricula === forgotMatricula);
     if (userExists) {
+        logEvent({ service: 'NotificationService', type: 'QUEUE', message: `PUBLISH event: PASSWORD_RESET_REQ for ${forgotMatricula}`, status: 'SENT' });
         alert("Instruções de recuperação de senha foram enviadas para o e-mail cadastrado (Simulação).");
         setShowForgot(false);
         setForgotMatricula('');
@@ -1874,7 +1887,119 @@ const ScreenAdminUsers = ({ users, setUsers }) => {
   );
 };
 
-const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees, setEmployees, externalArtProps, activeTab, setActiveTab }) => {
+const SystemMonitor = ({ logs }) => {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+            {/* MICROSERVICES ARCHITECTURE VISUALIZATION */}
+            <div className="col-span-1 md:col-span-2 bg-gray-900 text-white p-6 rounded-lg shadow-xl relative overflow-hidden">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold flex items-center text-yellow-400">
+                        <Icons.Layers className="mr-2" /> ARQUITETURA DE MICROSSERVIÇOS (SIMULAÇÃO)
+                    </h3>
+                    <span className="text-xs bg-green-800 text-green-200 px-2 py-1 rounded animate-pulse">SYSTEM: ONLINE</span>
+                </div>
+                
+                <div className="flex flex-wrap justify-center gap-8 items-center py-4 relative z-10">
+                    {/* Auth Service */}
+                    <div className="flex flex-col items-center">
+                        <div className="w-24 h-24 border-2 border-blue-500 rounded-full flex flex-col items-center justify-center bg-gray-800 shadow-lg shadow-blue-500/20">
+                            <Icons.Lock className="text-blue-400 mb-1" />
+                            <span className="text-[10px] font-bold">AUTH SERVICE</span>
+                            <span className="text-[8px] text-green-400">● Running</span>
+                        </div>
+                    </div>
+
+                    <div className="w-16 h-1 bg-gray-700 relative overflow-hidden rounded">
+                        <div className="absolute top-0 left-0 w-full h-full bg-blue-500 animate-[moveRight_2s_infinite]"></div>
+                    </div>
+
+                    {/* API Gateway / Middleware */}
+                    <div className="flex flex-col items-center relative">
+                         <div className="w-32 h-32 border-4 border-yellow-500 rounded-lg flex flex-col items-center justify-center bg-gray-800 shadow-xl shadow-yellow-500/20 z-10">
+                            <Icons.ArrowRightLeft className="text-yellow-400 mb-2 w-8 h-8" />
+                            <span className="text-xs font-bold text-center">INTEGRATION HUB<br/>(Middleware)</span>
+                        </div>
+                        <div className="absolute -top-4 -right-4 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full animate-bounce">
+                            Async Queue
+                        </div>
+                    </div>
+
+                    <div className="w-16 h-1 bg-gray-700 relative overflow-hidden rounded">
+                        <div className="absolute top-0 left-0 w-full h-full bg-green-500 animate-[moveRight_2s_infinite] delay-100"></div>
+                    </div>
+
+                    {/* Maintenance Service */}
+                    <div className="flex flex-col items-center">
+                        <div className="w-24 h-24 border-2 border-green-500 rounded-full flex flex-col items-center justify-center bg-gray-800 shadow-lg shadow-green-500/20">
+                            <Icons.Cpu className="text-green-400 mb-1" />
+                            <span className="text-[10px] font-bold">CORE SERVICE</span>
+                            <span className="text-[8px] text-green-400">● Active</span>
+                        </div>
+                    </div>
+
+                    {/* DB */}
+                     <div className="absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 translate-y-full md:translate-y-24 flex flex-col items-center">
+                        <div className="h-16 w-1 bg-gray-700 relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-full bg-purple-500 animate-[moveDown_2s_infinite]"></div>
+                        </div>
+                        <div className="w-20 h-24 border-2 border-purple-500 rounded-lg flex flex-col items-center justify-center bg-gray-800 mt-2">
+                             <Icons.Database className="text-purple-400" />
+                             <span className="text-[9px] mt-1 font-bold">CENTRAL DB</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Decorative Background Grid */}
+                <div className="absolute inset-0 z-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+                <style>{`
+                    @keyframes moveRight { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+                    @keyframes moveDown { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+                `}</style>
+            </div>
+
+            {/* LOG CONSOLE */}
+            <div className="bg-black text-green-400 p-4 rounded-lg shadow-lg font-mono text-xs h-64 overflow-y-auto border border-gray-700">
+                <div className="flex justify-between border-b border-gray-800 pb-2 mb-2 sticky top-0 bg-black z-10">
+                    <span className="font-bold flex items-center"><Icons.Terminal className="mr-2 w-3 h-3"/> API GATEWAY LOGS</span>
+                    <span className="text-[10px] text-gray-500">Live Stream</span>
+                </div>
+                <div className="space-y-1">
+                    {logs.length === 0 && <div className="text-gray-600 italic">Waiting for requests...</div>}
+                    {logs.map((log, i) => (
+                        <div key={i} className="flex gap-2">
+                            <span className="text-gray-500">[{log.time}]</span>
+                            <span className={`font-bold ${log.type === 'API' ? 'text-blue-400' : 'text-yellow-400'}`}>{log.type}</span>
+                            <span className="text-purple-400">@{log.service}:</span>
+                            <span className="text-white">{log.message}</span>
+                            <span className={`ml-auto ${log.status.includes('OK') || log.status.includes('SUCCESS') ? 'text-green-500' : 'text-red-500'}`}>{log.status}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+             {/* QUEUE STATUS */}
+             <div className="bg-white p-4 rounded-lg shadow border border-gray-300">
+                <h3 className="font-bold text-gray-700 mb-3 flex items-center"><Icons.Radio className="mr-2"/> FILA DE MENSAGENS ASSÍNCRONAS</h3>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-gray-100 p-2 rounded">
+                        <div className="text-xl font-bold text-blue-600">{logs.filter(l => l.type === 'QUEUE').length}</div>
+                        <div className="text-[9px] uppercase text-gray-500">Total Processado</div>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded">
+                        <div className="text-xl font-bold text-green-600">0</div>
+                        <div className="text-[9px] uppercase text-gray-500">Pendente</div>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded">
+                        <div className="text-xl font-bold text-gray-600">15ms</div>
+                        <div className="text-[9px] uppercase text-gray-500">Latência Média</div>
+                    </div>
+                </div>
+             </div>
+        </div>
+    );
+};
+
+const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees, setEmployees, externalArtProps, activeTab, setActiveTab, systemLogs }) => {
   const [newTag, setNewTag] = useState('');
   const [newLoc, setNewLoc] = useState('');
   const [networkPath, setNetworkPath] = useState(settings.registeredNetwork || '');
@@ -1909,6 +2034,7 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
           <button onClick={() => setActiveTab('employees')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'employees' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>FUNCIONÁRIOS</button>
           <button onClick={() => setActiveTab('users')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'users' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>USUÁRIOS SISTEMA</button>
           <button onClick={() => setActiveTab('external_art')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'external_art' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>CADASTRAR ART (PDF)</button>
+          <button onClick={() => setActiveTab('architecture')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'architecture' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>ARQUITETURA & INTEGRAÇÃO</button>
       </div>
 
       <div className="bg-white p-6 rounded-b-lg shadow min-h-[500px]">
@@ -1999,12 +2125,13 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
         {activeTab === 'employees' && <ScreenEmployeeRegister employees={employees} setEmployees={setEmployees} />}
         {activeTab === 'users' && <ScreenAdminUsers users={users} setUsers={setUsers} />}
         {activeTab === 'external_art' && <ScreenExternalArt {...externalArtProps} />}
+        {activeTab === 'architecture' && <SystemMonitor logs={systemLogs} />}
       </div>
     </div>
   );
 };
 
-const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNetwork }) => {
+const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNetwork, logEvent }) => {
   const [search, setSearch] = useState('');
   const filtered = docs.filter(d => 
       d.taskName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -2012,6 +2139,11 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
       d.tag?.includes(search) ||
       d.fileName?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = (id) => {
+      onDelete(id);
+      logEvent({ service: 'DocumentService', type: 'API', message: `DELETE /api/docs/${id}`, status: '200 OK' });
+  };
 
   return (
     <div className="p-6">
@@ -2049,7 +2181,7 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
                                        <button onClick={() => onView(doc)} className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold hover:bg-blue-200 flex items-center"><Icons.Eye size={14} className="mr-1"/> VER</button>
                                        <button onClick={() => onDownload(doc)} className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-bold hover:bg-green-200 flex items-center"><Icons.Download size={14} className="mr-1"/> PDF</button>
                                        <button onClick={() => onEdit(doc)} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200 flex items-center"><Icons.Edit size={14} className="mr-1"/> EDIT</button>
-                                       <button onClick={() => onDelete(doc.id)} className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200 flex items-center"><Icons.Trash size={14} className="mr-1"/> DEL</button>
+                                       <button onClick={() => handleDelete(doc.id)} className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200 flex items-center"><Icons.Trash size={14} className="mr-1"/> DEL</button>
                                        <button onClick={() => onSendToNetwork(doc)} className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold hover:bg-gray-200 flex items-center"><Icons.Server size={14} className="mr-1"/> REDE</button>
                                    </div>
                                </td>
@@ -2162,6 +2294,7 @@ const App = () => {
   const [editingDoc, setEditingDoc] = useState(null);
   const [settingsTab, setSettingsTab] = useState('general');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [systemLogs, setSystemLogs] = useState([]);
 
   useEffect(() => { setLocalStorage('users', users); }, [users]);
   useEffect(() => { setLocalStorage('employees', employees); }, [employees]);
@@ -2169,8 +2302,20 @@ const App = () => {
   useEffect(() => { setLocalStorage('settings', settings); }, [settings]);
   useEffect(() => { setLocalStorage('activeMaintenances', activeMaintenances); }, [activeMaintenances]);
 
+  // SYSTEM LOGGING FUNCTION (SIMULATING MICROSERVICES)
+  const logSystemEvent = (logData) => {
+    const newLog = {
+        time: new Date().toLocaleTimeString(),
+        ...logData
+    };
+    setSystemLogs(prev => [newLog, ...prev].slice(0, 50)); // Keep last 50 logs
+  };
+
   const handleLogin = (user) => setCurrentUser(user);
-  const handleLogout = () => setCurrentUser(null);
+  const handleLogout = () => {
+      logSystemEvent({ service: 'AuthService', type: 'API', message: `POST /api/auth/logout user=${currentUser?.matricula}`, status: '200 OK' });
+      setCurrentUser(null);
+  };
 
   const startMaintenance = (doc) => {
       const exists = activeMaintenances.find(m => m.id === doc.maintenanceId);
@@ -2186,10 +2331,11 @@ const App = () => {
               userId: currentUser.matricula
           };
           setActiveMaintenances([...activeMaintenances, newM]);
+          logSystemEvent({ service: 'CoreService', type: 'QUEUE', message: `PUBLISH event: MAINTENANCE_STARTED id=${newM.id}`, status: 'SENT' });
       } else {
-         // If editing and changing critical info, update maintenance record
          const updated = activeMaintenances.map(m => m.id === doc.maintenanceId ? { ...m, tag: doc.tag, om: doc.om, taskName: doc.taskName } : m);
          setActiveMaintenances(updated);
+         logSystemEvent({ service: 'CoreService', type: 'API', message: `PUT /api/maintenance/${doc.maintenanceId}`, status: '200 OK' });
       }
   };
 
@@ -2200,35 +2346,32 @@ const App = () => {
           : m
       );
       setActiveMaintenances(updated);
+      logSystemEvent({ service: 'CoreService', type: 'API', message: `POST /api/maintenance/${maintenance.id}/finish`, status: '200 OK' });
+      logSystemEvent({ service: 'NotificationService', type: 'QUEUE', message: `Email sent to supervisor`, status: 'DELIVERED' });
   };
 
   const handleSaveDoc = (docData) => {
       let finalDoc = { ...docData };
       
-      // Logic to manage ID and Maintenance ID
       if (editingDoc) {
-          // Updating existing doc
           const updatedDocs = docs.map(d => d.id === editingDoc.id ? finalDoc : d);
           setDocs(updatedDocs);
+          logSystemEvent({ service: 'DocumentService', type: 'API', message: `PUT /api/documents/${finalDoc.id}`, status: '200 OK' });
           
-          // If linked to a maintenance, ensure maintenance record is updated
           if (finalDoc.maintenanceId) {
               startMaintenance(finalDoc); 
           }
           setEditingDoc(null);
           alert("Documento atualizado com sucesso!");
       } else {
-          // New Doc
-          if (docData.type === 'external') {
-              // External docs don't necessarily start a maintenance unless specified, simplified here.
-          } else {
-              // Generate unified ID based on first doc (ART)
-              // If we are starting a flow, we generate ID. If we are doing Checklist, we might need to link (not implemented in UI flow yet, assuming standalone or sequential)
-              // For this version, let's use the doc.id as base for maintenance
+          if (docData.type !== 'external') {
               finalDoc.maintenanceId = `MNT-${finalDoc.id}`;
           }
           
           setDocs([...docs, finalDoc]);
+          logSystemEvent({ service: 'DocumentService', type: 'API', message: `POST /api/documents (new)`, status: '201 CREATED' });
+          logSystemEvent({ service: 'Database', type: 'DB', message: `INSERT INTO docs VALUES (${finalDoc.id})`, status: 'SYNCED' });
+
           if (docData.type !== 'external') {
              startMaintenance(finalDoc);
           }
@@ -2241,10 +2384,10 @@ const App = () => {
       if (confirm("Tem certeza que deseja excluir este documento?")) {
           const doc = docs.find(d => d.id === id);
           setDocs(docs.filter(d => d.id !== id));
-          // Also remove maintenance if it exists
           if (doc && doc.maintenanceId) {
               setActiveMaintenances(activeMaintenances.filter(m => m.id !== doc.maintenanceId));
           }
+          logSystemEvent({ service: 'DocumentService', type: 'API', message: `DELETE /api/documents/${id}`, status: '200 OK' });
       }
   };
 
@@ -2254,17 +2397,18 @@ const App = () => {
           setSettingsTab('external_art');
           setActiveScreen('admin_settings');
       } else {
-          setActiveScreen(doc.type); // 'emergencial', 'atividade', 'checklist'
+          setActiveScreen(doc.type);
       }
   };
 
   const handleViewDoc = (doc) => {
       setPreviewDoc({ ...doc, autoPrint: false });
+      logSystemEvent({ service: 'DocumentService', type: 'API', message: `GET /api/documents/${doc.id}/preview`, status: '200 OK' });
   };
 
   const handleDownloadDoc = (doc) => {
+      logSystemEvent({ service: 'DocumentService', type: 'API', message: `GET /api/documents/${doc.id}/download`, status: 'Downloading...' });
       if (doc.type === 'external' && doc.fileContent) {
-         // External PDF download logic using Blob
          const byteCharacters = atob(doc.fileContent.split(',')[1]);
          const byteNumbers = new Array(byteCharacters.length);
          for (let i = 0; i < byteCharacters.length; i++) {
@@ -2277,7 +2421,6 @@ const App = () => {
          link.download = doc.fileName || `documento-${doc.id}.pdf`;
          link.click();
       } else {
-         // Generated Doc: Open Viewer to print
          setPreviewDoc({ ...doc, autoPrint: false });
       }
   };
@@ -2291,16 +2434,19 @@ const App = () => {
           alert("Nenhum caminho de rede configurado em Configurações.");
           return;
       }
-      alert(`Enviando arquivo ${doc.id} para: ${settings.registeredNetwork}...\n(Simulação: Arquivo transferido com sucesso!)`);
+      logSystemEvent({ service: 'IntegrationHub', type: 'API', message: `SFTP UPLOAD to ${settings.registeredNetwork}`, status: 'TRANSFERRING...' });
+      setTimeout(() => {
+        logSystemEvent({ service: 'IntegrationHub', type: 'API', message: `SFTP UPLOAD completed`, status: 'SUCCESS' });
+        alert(`Enviando arquivo ${doc.id} para: ${settings.registeredNetwork}...\n(Simulação: Arquivo transferido com sucesso!)`);
+      }, 1000);
   };
 
   const refreshData = () => {
-     // Re-read from local storage to simulate syncing
      const m = localStorage.getItem('activeMaintenances');
      if(m) setActiveMaintenances(JSON.parse(m));
   };
 
-  if (!currentUser) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} />;
+  if (!currentUser) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} logEvent={logSystemEvent} />;
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans flex">
@@ -2328,7 +2474,7 @@ const App = () => {
              {activeScreen === 'atividade' && <ScreenArtAtividade onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} externalDocs={docs.filter(d => d.type === 'external')} onPreview={handlePreviewAction} />}
              {activeScreen === 'checklist' && <ScreenChecklist onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} preFill={null} />}
              {activeScreen === 'history' && <ScreenHistory docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} activeMaintenances={activeMaintenances} />}
-             {activeScreen === 'file_documents' && <ScreenFileDocuments docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} />}
+             {activeScreen === 'file_documents' && <ScreenFileDocuments docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} logEvent={logSystemEvent} />}
              
              {activeScreen === 'admin_settings' && (
                  <ScreenAdminSettings 
@@ -2341,6 +2487,7 @@ const App = () => {
                     externalArtProps={{ onSave: handleSaveDoc, editingDoc: (editingDoc?.type === 'external' ? editingDoc : null) }}
                     activeTab={settingsTab}
                     setActiveTab={setSettingsTab}
+                    systemLogs={systemLogs}
                  />
              )}
           </div>
