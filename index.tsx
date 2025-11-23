@@ -39,7 +39,6 @@ const Icons = {
 // --- CONSTANTS ---
 const ALERT_THRESHOLD_HOURS = 20;
 const ALERT_THRESHOLD_MS = ALERT_THRESHOLD_HOURS * 60 * 60 * 1000;
-// URL pública de um caminhão de mineração (Ex: Cat 777) para o alerta
 const TRUCK_IMAGE_URL = "https://s7d2.scene7.com/is/image/Caterpillar/CM20200916-74901-72057"; 
 
 const RISK_LIST_EMERGENCIAL = [
@@ -91,7 +90,6 @@ const setLocalStorage = (key, value) => {
 
 // --- COMPONENTS ---
 
-// 1. SIGNATURE CANVAS & MANAGER
 const SignatureCanvas = ({ onSave, onCancel, employeeName, employeeRole, employeeId }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -323,47 +321,6 @@ const MaintenanceTimer = ({ startTime, endTime }: { startTime: any; endTime?: an
   );
 };
 
-const TruckAlertModal = ({ onClose, alertData }) => {
-    return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-90 animate-fade-in">
-            <div className="bg-white p-6 rounded-lg max-w-2xl w-full border-8 border-red-600 shadow-[0_0_50px_rgba(255,0,0,0.5)] flex flex-col items-center relative">
-                <div className="absolute top-4 right-4">
-                    <button onClick={onClose} className="bg-gray-200 hover:bg-gray-300 p-2 rounded-full"><Icons.X /></button>
-                </div>
-                
-                <h2 className="text-3xl font-black text-red-600 mb-2 animate-pulse uppercase tracking-widest text-center">
-                    <Icons.AlertTriangle className="inline w-10 h-10 mb-2" /> ALERTA DE MANUTENÇÃO CRÍTICA
-                </h2>
-                
-                <div className="w-full h-64 bg-black mb-4 flex items-center justify-center overflow-hidden rounded border-2 border-yellow-500">
-                    <img 
-                        src={TRUCK_IMAGE_URL} 
-                        alt="Caterpillar Truck Alert" 
-                        className="h-full object-contain animate-pulse"
-                        onError={(e) => {
-                            // Fallback if image fails
-                            e.target.style.display='none';
-                        }}
-                    />
-                </div>
-
-                <div className="text-center space-y-2 mb-6 w-full bg-red-50 p-4 rounded">
-                    <p className="text-2xl font-bold text-gray-900">TAG: {alertData?.tag}</p>
-                    <p className="text-xl font-bold text-gray-700">OM: {alertData?.om}</p>
-                    <p className="text-lg text-red-700 font-bold uppercase">Tempo Limite Excedido!</p>
-                </div>
-
-                <button 
-                    onClick={onClose}
-                    className="bg-red-600 hover:bg-red-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-xl transition-transform hover:scale-105"
-                >
-                    CIENTE / FECHAR
-                </button>
-            </div>
-        </div>
-    );
-};
-
 const MaintenanceCard: React.FC<{ maintenance: any; onFinish: any; currentUser: any }> = ({ maintenance, onFinish, currentUser }) => {
   const [elapsed, setElapsed] = useState(0);
   const canFinish = currentUser && maintenance.userId === currentUser.matricula;
@@ -433,7 +390,6 @@ const MaintenanceCard: React.FC<{ maintenance: any; onFinish: any; currentUser: 
   );
 };
 
-// 5. PRINT TEMPLATE (PDF)
 const PrintTemplate = ({ data, type, onClose, settings }) => {
   const isAutoPrint = data.autoPrint === true;
 
@@ -469,7 +425,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
   return (
     <div className={containerClasses}>
        <style>{`
-        /* Estilos de Impressão Aprimorados */
         @media print {
             @page { 
                 size: A4; 
@@ -481,8 +436,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 print-color-adjust: exact;
             }
             .no-print { display: none !important; }
-            
-            /* Force visibility for autoPrint mode */
             .print-force-show { 
                 opacity: 1 !important; 
                 visibility: visible !important; 
@@ -491,17 +444,11 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 z-index: auto !important;
                 background-color: white !important;
             }
-            
-            /* Forçar bordas e fundos na impressão */
             .print-border { border: 1px solid #000 !important; }
             .print-bg-gray { background-color: #f3f4f6 !important; color: #000 !important; }
             .print-bg-dark { background-color: #1f2937 !important; color: white !important; }
-            
-            /* Ajustes de texto para impressão */
             .print-text-sm { font-size: 10pt !important; }
             .print-text-xs { font-size: 8pt !important; }
-            
-            /* Resetar containers para ocupar a folha toda */
             #print-wrapper {
                 padding: 0 !important;
                 margin: 0 !important;
@@ -516,13 +463,9 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 padding: 0 !important; 
                 margin: 0 !important; 
             }
-            
-            /* Evitar quebras de página indesejadas */
             tr, .avoid-break { page-break-inside: avoid; }
             table { page-break-inside: auto; }
         }
-
-        /* Estilos para Visualização em Tela */
         .document-table {
             width: 100%;
             border-collapse: collapse;
@@ -542,7 +485,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
         }
        `}</style>
 
-       {/* TOOLBAR - Hide if autoPrint */}
        {!isAutoPrint && (
         <div className="no-print fixed top-0 left-0 w-full bg-gray-900 text-white z-50 shadow-2xl flex flex-col md:flex-row justify-between items-center px-6 py-4 gap-4 border-b border-gray-700">
            <div className="flex items-center gap-3">
@@ -571,10 +513,8 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
        </div>
        )}
 
-       {/* PAPER A4 SIMULATION WRAPPER */}
        <div id="print-wrapper" className={`${isAutoPrint ? 'print-force-show' : 'pt-24 pb-10'} w-full flex flex-col items-center overflow-x-auto print:pt-0 print:pb-0`}> 
          
-         {/* INSTRUCTION BOX */}
          {!isAutoPrint && (
              <div className="no-print bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6 text-sm max-w-[210mm] text-center shadow-sm">
                  <span className="font-bold block mb-1"><Icons.AlertTriangle className="inline w-4 h-4 mb-1 mr-1"/> COMO BAIXAR:</span>
@@ -584,12 +524,10 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
 
          <div id="print-section" className="bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-2xl text-black box-border print:shadow-none print:w-full print:p-0 mx-auto shrink-0">
             
-            {/* --- DOCUMENT HEADER --- */}
             <table className="document-table mb-6">
                 <tbody>
                     <tr>
                         <td className="w-24 text-center p-2">
-                           {/* LOGO PLACEHOLDER */}
                            <div className="flex flex-col items-center justify-center">
                                <Icons.Activity className="w-10 h-10 text-gray-800" />
                                <div className="text-[9px] font-bold mt-1 uppercase tracking-wider">Logo</div>
@@ -614,7 +552,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </tbody>
             </table>
 
-            {/* --- INFO BLOCK --- */}
             <table className="document-table">
                 <thead>
                     <tr>
@@ -653,9 +590,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </tbody>
             </table>
 
-            {/* --- SPECIFIC CONTENT --- */}
-
-            {/* EMERGENCIAL RISKS */}
             {type === 'emergencial' && (
                 <div className="mb-4">
                     <div className="bg-gray-800 text-white font-bold p-2 text-center text-sm uppercase border border-black border-b-0 print-bg-dark">
@@ -688,7 +622,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </div>
             )}
 
-            {/* ACTIVITY STEPS & RISKS */}
             {type === 'atividade' && (
                 <>
                     <table className="document-table">
@@ -739,7 +672,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </>
             )}
 
-            {/* CHECKLIST ITEMS */}
             {type === 'checklist' && (
                 <div className="mb-4 space-y-4">
                     {SYSTEMS_CHECKLIST.map((sys, idx) => (
@@ -779,7 +711,6 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </div>
             )}
 
-            {/* --- SIGNATURES --- */}
             <div className="mt-8 avoid-break">
                 <table className="document-table mb-0">
                     <thead>
@@ -811,13 +742,11 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                 </div>
             </div>
 
-            {/* FOOTER */}
             <div className="text-[9px] text-center mt-8 text-gray-400 border-t pt-2">
                 Documento gerado eletronicamente pelo sistema ART APP em {new Date().toLocaleString('pt-BR')}. Válido para fins de registro interno.
             </div>
          </div>
 
-         {/* ACTION FOOTER (BOTTOM OF PAGE) */}
          {!isAutoPrint && (
             <div className="no-print mt-8 w-full max-w-[210mm] grid grid-cols-2 gap-4 mb-10">
                 <button onClick={() => window.print()} className="bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105">
@@ -904,47 +833,23 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
   const [connectedUsers, setConnectedUsers] = useState(3);
 
   useEffect(() => {
-      // Simulate fluctuating user count to fake network activity
       const interval = setInterval(() => {
-          const randomUsers = Math.floor(Math.random() * 3) + 2; // 2 to 4 users
+          const randomUsers = Math.floor(Math.random() * 3) + 2; 
           setConnectedUsers(randomUsers);
       }, 45000);
       return () => clearInterval(interval);
   }, []);
   
-  // --- AUTO-REFRESH LOGIC ---
   useEffect(() => {
     const interval = setInterval(() => {
-      // Call the refresh function passed from App to reload data from localStorage (simulating network fetch)
       refreshData();
       console.log("Painel atualizado via rede/Wi-Fi...", new Date().toLocaleTimeString());
-    }, 30000); // 30 seconds
+    }, 30000);
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  // --- TRUCK ALERT LOGIC ---
-  const [alertData, setAlertData] = useState(null);
-
-  useEffect(() => {
-      // Check for overdue maintenances to trigger alert
-      const overdueItem = activeList.find(m => {
-          const startTime = new Date(m.startTime).getTime();
-          const elapsed = new Date().getTime() - startTime;
-          return elapsed > ALERT_THRESHOLD_MS;
-      });
-
-      if (overdueItem) {
-          setAlertData(overdueItem);
-      } else {
-          setAlertData(null);
-      }
-  }, [activeList]);
-
   return (
     <div className="p-8 h-full flex flex-col relative">
-      {alertData && <TruckAlertModal alertData={alertData} onClose={() => setAlertData(null)} />}
-
-      {/* Safety Banner */}
       <div className="bg-black text-yellow-400 p-6 rounded-lg shadow-lg mb-6 border-l-8 border-yellow-500 flex justify-between items-center flex-wrap gap-4">
           <div>
             <h1 className="text-4xl font-bold uppercase mb-1 tracking-tighter">SEGURANÇA EM 1º LUGAR</h1>
@@ -960,10 +865,7 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
           </div>
       </div>
 
-      {/* SPLIT VIEW DASHBOARD / MONITOR */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
-          
-          {/* LEFT: MONITOR 24H ACTIVE (Big Section) */}
           <div className="lg:col-span-2 bg-white rounded shadow-xl border border-gray-300 flex flex-col relative overflow-hidden">
              <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 relative">
                  <h2 className="text-2xl font-bold text-red-600 flex items-center animate-pulse">
@@ -977,7 +879,6 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
                  </div>
              </div>
 
-             {/* CAMINHÃO EM DESTAQUE NO DASHBOARD */}
              <div className="w-full h-40 bg-gray-100 flex items-center justify-center border-b border-gray-300 relative overflow-hidden">
                  <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-100 opacity-50"></div>
                  <img 
@@ -1003,7 +904,6 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
              </div>
           </div>
 
-          {/* RIGHT: RECENT HISTORY (Smaller Section) */}
           <div className="bg-white rounded shadow-lg border border-gray-300 flex flex-col">
              <div className="p-4 bg-gray-50 border-b border-gray-200">
                  <h2 className="text-lg font-bold text-green-700 flex items-center">
@@ -1128,7 +1028,6 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white shadow rounded relative">
-        {/* Floating Action Button for Saving */}
         <button 
             onClick={handleSubmit} 
             className="fixed bottom-8 right-8 bg-green-600 text-white p-4 rounded-full shadow-2xl border-4 border-white hover:bg-green-700 z-50 flex items-center gap-2 transition-transform hover:scale-105"
@@ -1175,7 +1074,6 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
             {settings?.locations?.map(loc => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        {/* Date and Time Fields */}
         <div>
             <label className="block text-xs font-bold mb-1">Data:</label>
             <input className="border p-2 w-full" value={header.date} onChange={e => setHeader({...header, date: e.target.value})} />
@@ -1355,7 +1253,6 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white shadow rounded relative">
-       {/* Floating Action Button for Saving */}
         <button 
             onClick={handleSubmit} 
             className="fixed bottom-8 right-8 bg-green-600 text-white p-4 rounded-full shadow-2xl border-4 border-white hover:bg-green-700 z-50 flex items-center gap-2 transition-transform hover:scale-105"
@@ -1393,7 +1290,6 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
             {settings?.locations?.map(loc => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        {/* Date and Time Fields */}
         <div>
             <label className="block text-xs font-bold mb-1">Data:</label>
             <input className="border p-2 w-full" value={header.date} onChange={e => setHeader({...header, date: e.target.value})} />
@@ -1557,7 +1453,6 @@ const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings, onP
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white shadow rounded relative">
-       {/* Floating Action Button for Saving */}
         <button 
             onClick={handleSubmit} 
             className="fixed bottom-8 right-8 bg-green-600 text-white p-4 rounded-full shadow-2xl border-4 border-white hover:bg-green-700 z-50 flex items-center gap-2 transition-transform hover:scale-105"
@@ -1589,7 +1484,6 @@ const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings, onP
             {settings?.locations?.map(loc => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        {/* Date and Time Fields */}
         <div>
             <label className="block text-xs font-bold mb-1">Data:</label>
             <input className="border p-2 w-full" value={header.date} onChange={e => setHeader({...header, date: e.target.value})} />
@@ -1647,1138 +1541,720 @@ const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings, onP
   );
 };
 
-const ScreenExternalArt = ({ onSave, docs, onDelete, editingDoc }) => {
-    const [form, setForm] = useState({ taskName: '', artNumber: '', fileName: '', date: new Date().toLocaleDateString('pt-BR'), fileContent: '' });
-    
-    const externalDocs = docs.filter(d => d.type === 'external');
+const ScreenExternalArt = ({ onSave, editingDoc }) => {
+  const [form, setForm] = useState({ fileName: '', artNumber: '', fileContent: '' });
 
-    useEffect(() => {
-        if (editingDoc) {
-            setForm({
-                taskName: editingDoc.taskName,
-                artNumber: editingDoc.artNumber,
-                fileName: editingDoc.fileName,
-                date: editingDoc.date,
-                fileContent: editingDoc.fileContent
-            });
-        } else {
-            setForm({ taskName: '', artNumber: '', fileName: '', date: new Date().toLocaleDateString('pt-BR'), fileContent: '' });
-        }
-    }, [editingDoc]);
+  useEffect(() => {
+    if (editingDoc) {
+      setForm({
+        fileName: editingDoc.fileName || '',
+        artNumber: editingDoc.artNumber || '',
+        fileContent: editingDoc.fileContent || ''
+      });
+    }
+  }, [editingDoc]);
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                setForm({ 
-                    ...form, 
-                    fileName: file.name,
-                    fileContent: ev.target.result as string 
-                });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleSubmit = () => {
-        if (!form.taskName || !form.fileName || !form.artNumber) {
-            alert("Preencha o nome, número da ART e selecione um arquivo.");
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        if (file.type !== 'application/pdf') {
+            alert('Por favor, selecione um arquivo PDF.');
             return;
         }
-        onSave({
-            ...form,
-            type: 'external',
-            tag: 'N/A',
-            om: 'N/A',
-            time: new Date().toLocaleTimeString('pt-BR'),
-            id: editingDoc ? editingDoc.id : Date.now()
-        });
-        if (!editingDoc) {
-            setForm({ taskName: '', artNumber: '', fileName: '', date: new Date().toLocaleDateString('pt-BR'), fileContent: '' });
-        }
-    };
-
-    return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">{editingDoc ? 'Editar ART Externa' : 'Cadastrar ART Externa (PDF)'}</h2>
-            
-            <div className="bg-white p-6 rounded shadow-lg mb-8">
-                <h3 className="font-bold mb-4 border-b pb-2">{editingDoc ? 'Editar Dados' : 'Novo Cadastro'}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block font-bold mb-1">Nome/Identificação</label>
-                        <input className="w-full border p-2" value={form.taskName} onChange={e => setForm({...form, taskName: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block font-bold mb-1">Número da ART</label>
-                        <input className="w-full border p-2" value={form.artNumber} onChange={e => setForm({...form, artNumber: e.target.value})} />
-                    </div>
-                </div>
-                <div className="mb-6">
-                    <label className="block font-bold mb-2">Selecionar PDF {editingDoc && '(Opcional - manter atual)'}</label>
-                    <div className="border-2 border-dashed border-gray-400 p-6 text-center rounded hover:bg-gray-50 cursor-pointer">
-                        <input type="file" accept="application/pdf" className="hidden" id="pdf-upload" onChange={handleFileChange} />
-                        <label htmlFor="pdf-upload" className="cursor-pointer">
-                            <Icons.Upload />
-                            <span className="block mt-2 text-sm text-gray-600">{form.fileName || "Clique para selecionar arquivo PDF"}</span>
-                        </label>
-                    </div>
-                    {form.fileContent && (
-                        <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden shadow-inner bg-gray-100">
-                            <div className="bg-gray-200 px-4 py-2 border-b border-gray-300 flex justify-between items-center">
-                                <span className="text-xs font-bold uppercase text-gray-600 flex items-center">
-                                    <Icons.Eye className="w-3 h-3 mr-1"/> Pré-visualização
-                                </span>
-                                <span className="text-xs text-gray-500">{form.fileName}</span>
-                            </div>
-                            <iframe 
-                                src={form.fileContent} 
-                                className="w-full h-[500px]" 
-                                title="PDF Preview"
-                            ></iframe>
-                        </div>
-                    )}
-                </div>
-                <button onClick={handleSubmit} className="w-full bg-blue-600 text-white font-bold py-3 rounded">
-                    {editingDoc ? 'ATUALIZAR CADASTRO' : 'SALVAR CADASTRO'}
-                </button>
-            </div>
-
-            {!editingDoc && (
-            <div className="bg-white p-6 rounded shadow-lg">
-                <h3 className="font-bold text-lg mb-4 border-b pb-2">ARTs Externas Cadastradas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {externalDocs.map(doc => (
-                        <div key={doc.id} className="bg-white p-4 rounded shadow border-l-4 border-purple-500 flex justify-between items-center">
-                            <div>
-                                <h4 className="font-bold">{doc.taskName}</h4>
-                                <p className="text-xs text-gray-800 font-bold">Nº ART: {doc.artNumber}</p>
-                                <p className="text-xs text-gray-500">Arquivo: {doc.fileName}</p>
-                                <p className="text-xs text-gray-400">{doc.date}</p>
-                            </div>
-                        </div>
-                    ))}
-                    {externalDocs.length === 0 && <p className="text-gray-500 text-sm">Nenhuma ART externa cadastrada.</p>}
-                </div>
-            </div>
-            )}
-        </div>
-    );
-};
-
-const ScreenHistory = ({ docs, onDelete, onEdit, onView, onDownload, isAdmin, settings, onClearAll, activeMaintenances }) => {
-  const groupedDocs = {};
-  
-  docs.forEach(doc => {
-      if (doc.type !== 'external') {
-        const mId = doc.maintenanceId || 'legacy';
-        if (!groupedDocs[mId]) groupedDocs[mId] = [];
-        groupedDocs[mId].push(doc);
-      }
-  });
-
-  const activeGroups = {};
-  const finishedGroups = {};
-
-  Object.keys(groupedDocs).forEach(mId => {
-      const maintenance = activeMaintenances?.find(m => m.id === mId);
-      if (maintenance && maintenance.status === 'finished') {
-          finishedGroups[mId] = groupedDocs[mId];
-      } else {
-          activeGroups[mId] = groupedDocs[mId];
-      }
-  });
-
-  const handleSendToNetwork = (doc) => {
-    const network = settings?.registeredNetwork;
-    if (!network) {
-        alert("Nenhuma rede cadastrada nas configurações. Contate o administrador.");
-        return;
-    }
-    const confirmSend = confirm(`Deseja enviar o documento "${doc.tag}" para a rede cadastrada?\nDestino: ${network}`);
-    if (confirmSend) {
-        alert(`Iniciando envio para ${network}...\n(Simulação: Arquivo transferido com sucesso!)`);
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+            setForm(prev => ({ ...prev, fileName: file.name, fileContent: loadEvent.target.result as string }));
+        };
+        reader.readAsDataURL(file);
     }
   };
 
+  const handleSubmit = () => {
+    if (!form.fileName || !form.artNumber) {
+        alert('Preencha todos os campos.');
+        return;
+    }
+    if (!form.fileContent && !editingDoc) {
+        alert('Faça o upload do PDF.');
+        return;
+    }
+    onSave({
+      ...form,
+      type: 'external',
+      date: new Date().toLocaleDateString('pt-BR'),
+      id: editingDoc ? editingDoc.id : Date.now()
+    });
+    setForm({ fileName: '', artNumber: '', fileContent: '' });
+    alert('ART Cadastrada com Sucesso!');
+  };
+
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold">Histórico de Documentos</h2>
-      </div>
-      
-      <div className="flex flex-col lg:flex-row gap-6 flex-1">
-        <style>{`
-            @media print {
-                /* Esconde tudo exceto a tabela principal no relatório */
-                nav, .sidebar, button, .no-print { display: none !important; }
-                body { background: white; }
-                .print-only-table { display: block !important; width: 100%; }
-            }
-        `}</style>
-        
-        <div className="flex-1 space-y-6">
-             <h3 className="font-bold text-gray-500 text-sm border-b pb-2">EM ABERTO / ATIVOS</h3>
-            {Object.keys(activeGroups).map(mId => {
-                const group = activeGroups[mId];
-                const firstDoc = group[0];
-                return (
-                    <div key={mId} className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-                        <div className="bg-gray-100 p-3 border-b border-gray-300 flex justify-between items-center">
-                            <div>
-                                <span className="font-bold text-lg">OM: {firstDoc.om} | TAG: {firstDoc.tag}</span>
-                                <span className="text-sm text-gray-500 ml-2">({firstDoc.date})</span>
-                            </div>
-                            <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">ID: {mId.slice(-6)}</div>
-                        </div>
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {group.map(doc => (
-                                <div key={doc.id} className="border border-gray-200 rounded shadow-sm flex flex-col justify-between bg-white hover:shadow-md transition-shadow">
-                                    <div className="p-4 border-b border-gray-100">
-                                        <h3 className="font-bold text-lg text-yellow-600 mb-1 flex items-center">
-                                            {doc.type === 'emergencial' ? <Icons.AlertTriangle /> : doc.type === 'atividade' ? <Icons.ClipboardList /> : <Icons.CheckSquare />}
-                                            <span className="ml-2">{doc.type === 'emergencial' ? 'ART Emergencial' : doc.type === 'atividade' ? 'ART Atividade' : 'Checklist'}</span>
-                                        </h3>
-                                        <p className="text-sm font-semibold text-gray-800">{doc.taskName}</p>
-                                        <p className="text-xs text-gray-500 mt-2 flex items-center"><Icons.Clock /> <span className="ml-1">{doc.time}</span></p>
-                                    </div>
-                                    <div className="bg-gray-50 p-2 grid grid-cols-4 gap-1">
-                                        <button onClick={() => onView(doc)} className="bg-gray-200 text-gray-700 p-2 rounded hover:bg-gray-300 flex flex-col items-center justify-center" title="Visualizar">
-                                            <Icons.Eye className="w-4 h-4 mb-1" /> <span className="text-[8px] font-bold">VER</span>
-                                        </button>
-                                        <button onClick={() => onDownload(doc)} className="bg-green-100 text-green-700 p-2 rounded hover:bg-green-200 flex flex-col items-center justify-center" title="Baixar PDF">
-                                            <Icons.Download className="w-4 h-4 mb-1" /> <span className="text-[8px] font-bold">PDF</span>
-                                        </button>
-                                        <button onClick={() => handleSendToNetwork(doc)} className="bg-purple-600 text-white p-2 rounded hover:bg-purple-700 flex flex-col items-center justify-center" title="Enviar Rede">
-                                            <Icons.Cloud className="w-4 h-4 mb-1" /> <span className="text-[8px] font-bold">REDE</span>
-                                        </button>
-                                        <button onClick={() => onDelete(doc.id)} className="bg-red-100 text-red-700 p-2 rounded hover:bg-red-200 flex flex-col items-center justify-center" title="Excluir">
-                                            <Icons.Trash className="w-4 h-4 mb-1" /> <span className="text-[8px] font-bold">DEL</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )
-            })}
-            {Object.keys(activeGroups).length === 0 && <p className="text-center text-gray-500 py-8 italic">Nenhum documento ativo encontrado.</p>}
+    <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded">
+      <h2 className="text-2xl font-bold mb-4 flex items-center"><Icons.Upload className="mr-2"/> Cadastrar ART (PDF)</h2>
+      <div className="space-y-4">
+        <input 
+            type="text" 
+            placeholder="Nome do Arquivo / Descrição" 
+            className="w-full border p-2 rounded"
+            value={form.fileName}
+            onChange={e => setForm({...form, fileName: e.target.value})}
+        />
+        <input 
+            type="text" 
+            placeholder="Número da ART" 
+            className="w-full border p-2 rounded"
+            value={form.artNumber}
+            onChange={e => setForm({...form, artNumber: e.target.value})}
+        />
+        <div className="border-2 border-dashed border-gray-300 p-6 text-center rounded bg-gray-50">
+            <input type="file" accept="application/pdf" onChange={handleFileChange} className="hidden" id="pdf-upload" />
+            <label htmlFor="pdf-upload" className="cursor-pointer flex flex-col items-center">
+                <Icons.Cloud className="w-12 h-12 text-gray-400 mb-2" />
+                <span className="text-blue-600 font-bold">Clique para enviar PDF</span>
+            </label>
+            {form.fileName && <p className="mt-2 text-sm text-green-600 font-bold">Selecionado: {form.fileName}</p>}
         </div>
 
-        <div className="w-full lg:w-1/3 border-l lg:pl-6 space-y-6 bg-gray-50 p-4 rounded">
-             <h3 className="font-bold text-red-600 text-sm border-b border-red-200 pb-2 flex items-center">
-                 <Icons.Lock className="w-4 h-4 mr-2"/> OMs ENCERRADAS (LISTA LATERAL)
-             </h3>
-             {Object.keys(finishedGroups).map(mId => {
-                const group = finishedGroups[mId];
-                const firstDoc = group[0];
-                return (
-                    <div key={mId} className="bg-white border border-red-200 rounded-lg shadow-sm overflow-hidden opacity-90 hover:opacity-100 transition">
-                        <div className="bg-red-50 p-2 border-b border-red-100 flex justify-between items-center">
-                            <div>
-                                <span className="font-bold text-sm text-red-900">OM: {firstDoc.om}</span>
-                                <div className="text-[10px] text-red-700">Encerrada</div>
-                            </div>
-                            <Icons.CheckSquare className="text-red-400 w-4 h-4" />
-                        </div>
-                        <div className="p-2 space-y-2">
-                             {group.map(doc => (
-                                <div key={doc.id} className="border border-gray-100 rounded p-2 flex justify-between items-center bg-gray-50">
-                                    <div>
-                                        <p className="text-xs font-bold">{doc.type.toUpperCase()}</p>
-                                        <p className="text-[10px] text-gray-500">{doc.taskName.slice(0,20)}...</p>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button onClick={() => onView(doc)} className="text-gray-600 hover:bg-gray-200 p-2 rounded" title="Visualizar"><Icons.Eye className="w-4 h-4"/></button>
-                                        <button onClick={() => onDownload(doc)} className="text-green-600 hover:bg-green-100 p-2 rounded" title="Baixar"><Icons.Download className="w-4 h-4"/></button>
-                                        <button onClick={() => onEdit(doc)} className="text-yellow-600 hover:bg-yellow-100 p-2 rounded" title="Editar"><Icons.Edit className="w-4 h-4"/></button>
-                                        <button onClick={() => onDelete(doc.id)} className="text-red-600 hover:bg-red-100 p-2 rounded" title="Excluir"><Icons.Trash className="w-4 h-4"/></button>
-                                    </div>
-                                </div>
-                             ))}
-                        </div>
-                        <div className="bg-gray-200 text-gray-500 text-center py-1 text-xs font-bold border-t border-gray-300 cursor-not-allowed flex justify-center items-center">
-                             <Icons.Lock className="w-3 h-3 mr-1"/> OM ENCERRADA
-                        </div>
-                    </div>
-                )
-             })}
-             {Object.keys(finishedGroups).length === 0 && <p className="text-center text-gray-400 text-xs italic">Nenhuma OM encerrada.</p>}
-        </div>
+        {form.fileContent && (
+            <div className="mt-4 border p-2 rounded bg-gray-100">
+                <h3 className="font-bold text-sm mb-2 text-gray-700 border-b pb-1">Pré-visualização do Arquivo:</h3>
+                <iframe src={form.fileContent} className="w-full h-[500px] border bg-white" title="PDF Preview"></iframe>
+            </div>
+        )}
 
+        <button onClick={handleSubmit} className="w-full bg-black text-white p-3 rounded font-bold hover:bg-gray-800">
+            SALVAR ART
+        </button>
       </div>
     </div>
   );
 };
 
-const ScreenEmployeeRegister = ({ employees, setEmployees, isAdmin }) => {
-  const [form, setForm] = useState({ name: '', matricula: '', role: '', phone: '' });
-  const [editingId, setEditingId] = useState(null);
+const ScreenHistory = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNetwork, activeMaintenances }) => {
+  // Split logic for side panel
+  const finishedIds = new Set(activeMaintenances.filter(m => m.status === 'finished').map(m => m.id));
+  
+  // Finished OMs go to side panel
+  const finishedDocs = docs.filter(d => d.maintenanceId && finishedIds.has(d.maintenanceId));
+  
+  // Active or Unlinked docs stay in main area
+  const activeDocs = docs.filter(d => !d.maintenanceId || !finishedIds.has(d.maintenanceId));
 
-  const handleSave = () => {
-    if (editingId) {
-        setEmployees(employees.map(e => e.matricula === editingId ? form : e));
-        setEditingId(null);
-    } else {
-        setEmployees([...employees, form]);
-    }
-    setForm({ name: '', matricula: '', role: '', phone: '' });
-  };
+  return (
+    <div className="p-6 h-full flex flex-col md:flex-row gap-6">
+        {/* MAIN CONTENT (LEFT) */}
+        <div className="flex-1 flex flex-col bg-white rounded shadow overflow-hidden">
+          <div className="p-4 border-b bg-gray-100 flex justify-between items-center">
+              <h2 className="font-bold text-xl flex items-center"><Icons.FileText className="mr-2"/> DOCUMENTOS ATIVOS / HISTÓRICO</h2>
+          </div>
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 text-sm text-gray-600">
+                    <tr>
+                        <th className="p-3 border-b">Tipo</th>
+                        <th className="p-3 border-b">ID / Tarefa</th>
+                        <th className="p-3 border-b hidden md:table-cell">OM / TAG</th>
+                        <th className="p-3 border-b">Data</th>
+                        <th className="p-3 border-b text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody className="text-sm">
+                    {activeDocs.map(doc => (
+                        <tr key={doc.id} className="hover:bg-gray-50 border-b last:border-0">
+                            <td className="p-3">
+                                {doc.type === 'emergencial' && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-bold">ART EMER</span>}
+                                {doc.type === 'atividade' && <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-bold">ART ATIV</span>}
+                                {doc.type === 'checklist' && <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded font-bold">CHECKLIST</span>}
+                                {doc.type === 'external' && <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-bold">PDF EXT</span>}
+                            </td>
+                            <td className="p-3">
+                                <div className="font-bold">{doc.taskName || doc.fileName}</div>
+                                <div className="text-xs text-gray-500">ID: {doc.maintenanceId || doc.id}</div>
+                            </td>
+                            <td className="p-3 hidden md:table-cell">
+                                <div>{doc.om || '-'}</div>
+                                <div className="text-xs text-gray-500">{doc.tag}</div>
+                            </td>
+                            <td className="p-3">{doc.date} <span className="text-gray-400">{doc.time}</span></td>
+                            <td className="p-3">
+                                <div className="flex justify-center gap-2">
+                                    <button onClick={() => onView(doc)} className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200" title="Visualizar">
+                                        <Icons.Eye size={18} />
+                                    </button>
+                                    <button onClick={() => onDownload(doc)} className="p-2 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Visualizar para Baixar">
+                                        <Icons.Download size={18} />
+                                    </button>
+                                    <button onClick={() => onEdit(doc)} className="p-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200" title="Editar">
+                                        <Icons.Edit size={18} />
+                                    </button>
+                                    <button onClick={() => onDelete(doc.id)} className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Excluir">
+                                        <Icons.Trash size={18} />
+                                    </button>
+                                    <button onClick={() => onSendToNetwork(doc)} className="p-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200" title="Enviar Rede">
+                                        <Icons.Server size={18} />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                    {activeDocs.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhum documento ativo.</td></tr>
+                    )}
+                </tbody>
+            </table>
+          </div>
+        </div>
 
-  const handleEdit = (emp) => {
-      setForm(emp);
-      setEditingId(emp.matricula);
+        {/* SIDE PANEL (RIGHT) - ENCERRADAS */}
+        <div className="w-full md:w-80 bg-gray-50 border-l border-gray-300 shadow-inner flex flex-col p-4">
+             <h3 className="font-bold text-gray-700 mb-4 flex items-center border-b pb-2"><Icons.Lock className="mr-2 w-4 h-4"/> OMs ENCERRADAS</h3>
+             <div className="flex-1 overflow-y-auto space-y-3">
+                 {finishedDocs.map(doc => (
+                     <div key={doc.id} className="bg-white p-3 rounded border border-gray-200 shadow-sm opacity-75 hover:opacity-100 transition-opacity">
+                         <div className="flex justify-between items-start mb-1">
+                             <span className="text-xs font-bold bg-gray-200 px-1 rounded">{doc.type.toUpperCase().slice(0,4)}</span>
+                             <span className="text-[10px] text-gray-400">{doc.date}</span>
+                         </div>
+                         <div className="font-bold text-sm truncate">{doc.taskName}</div>
+                         <div className="text-xs text-gray-500 mb-2">OM: {doc.om} | TAG: {doc.tag}</div>
+                         
+                         <div className="bg-red-50 border border-red-100 text-red-700 text-xs text-center py-1 font-bold mb-2 rounded">
+                             OM ENCERRADA
+                         </div>
+
+                         <div className="flex gap-1 justify-center border-t pt-2">
+                             <button onClick={() => onView(doc)} className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex-1 flex justify-center"><Icons.Eye size={14}/></button>
+                             <button onClick={() => onDownload(doc)} className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 flex-1 flex justify-center"><Icons.Download size={14}/></button>
+                             <button onClick={() => onEdit(doc)} className="p-1 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100 flex-1 flex justify-center"><Icons.Edit size={14}/></button>
+                             <button onClick={() => onDelete(doc.id)} className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-1 flex justify-center"><Icons.Trash size={14}/></button>
+                         </div>
+                     </div>
+                 ))}
+                 {finishedDocs.length === 0 && <p className="text-xs text-gray-400 text-center italic">Nenhuma OM encerrada recentemente.</p>}
+             </div>
+        </div>
+    </div>
+  );
+};
+
+const ScreenEmployeeRegister = ({ employees, setEmployees }) => {
+  const [form, setForm] = useState({ name: '', role: '', matricula: '' });
+
+  const handleAdd = () => {
+    if (!form.name || !form.matricula) return alert("Preencha nome e matrícula");
+    setEmployees([...employees, form]);
+    setForm({ name: '', role: '', matricula: '' });
   };
 
   const handleDelete = (matricula) => {
-      if (confirm('Tem certeza que deseja excluir este funcionário?')) {
-        setEmployees(employees.filter(e => e.matricula !== matricula));
+      if (confirm("Excluir funcionário?")) {
+          setEmployees(employees.filter(e => e.matricula !== matricula));
       }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-4">Cadastro de Funcionários</h2>
-      
-      <div className="bg-white p-4 rounded shadow mb-6 border-l-4 border-yellow-400">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input placeholder="Nome Completo" className="border p-2" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-            <input placeholder="Matrícula" className="border p-2" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} disabled={!!editingId} />
-            <input placeholder="Função" className="border p-2" value={form.role} onChange={e => setForm({...form, role: e.target.value})} />
-            <input placeholder="Telefone" className="border p-2" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-        </div>
-        <button onClick={handleSave} className="bg-black text-white px-4 py-2 rounded font-bold">
-            {editingId ? 'ATUALIZAR' : 'CADASTRAR'}
-        </button>
-        {editingId && <button onClick={() => {setEditingId(null); setForm({ name: '', matricula: '', role: '', phone: '' })}} className="ml-2 text-red-500 underline">Cancelar</button>}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+        <input placeholder="Nome Completo" className="border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+        <input placeholder="Função / Cargo" className="border p-2 rounded" value={form.role} onChange={e => setForm({...form, role: e.target.value})} />
+        <input placeholder="Matrícula" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} />
       </div>
-
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full">
-            <thead className="bg-gray-100 border-b">
-                <tr>
-                    <th className="p-3 text-left">Nome</th>
-                    <th className="p-3 text-left">Matrícula</th>
-                    <th className="p-3 text-left">Função</th>
-                    <th className="p-3 text-right">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {employees.map(emp => (
-                    <tr key={emp.matricula} className="border-b hover:bg-gray-50">
-                        <td className="p-3">{emp.name}</td>
-                        <td className="p-3">{emp.matricula}</td>
-                        <td className="p-3">{emp.role}</td>
-                        <td className="p-3 text-right space-x-2">
-                            <button onClick={() => handleEdit(emp)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Icons.Edit /></button>
-                            <button onClick={() => handleDelete(emp.matricula)} className="text-red-600 hover:bg-red-100 p-2 rounded"><Icons.Trash /></button>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
+      <button onClick={handleAdd} className="w-full bg-blue-600 text-white p-2 rounded font-bold mb-6">ADICIONAR FUNCIONÁRIO</button>
+      
+      <div className="space-y-2">
+        {employees.map(emp => (
+          <div key={emp.matricula} className="flex justify-between items-center border p-3 rounded hover:bg-gray-50">
+            <div>
+                <p className="font-bold">{emp.name}</p>
+                <p className="text-xs text-gray-500">{emp.role} | Mat: {emp.matricula}</p>
+            </div>
+            <button onClick={() => handleDelete(emp.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
 const ScreenAdminUsers = ({ users, setUsers }) => {
-    const [form, setForm] = useState({ name: '', matricula: '', password: '', role: 'user' });
-    
-    const handleAdd = () => {
-        if (users.some(u => u.matricula === form.matricula)) {
-            alert('Matrícula já existe!');
-            return;
-        }
-        setUsers([...users, form]);
-        setForm({ name: '', matricula: '', password: '', role: 'user' });
-    };
+  const [form, setForm] = useState({ name: '', matricula: '', password: '' });
 
-    const handleDelete = (mat) => {
-        if (mat === 'admin') { 
-            alert('O administrador principal não pode ser excluído por segurança.'); 
-            return; 
-        }
-        if (confirm('Excluir este usuário do sistema?')) {
-            setUsers(users.filter(u => u.matricula !== mat));
-        }
-    };
+  const handleAdd = () => {
+    if (!form.name || !form.matricula || !form.password) return alert("Preencha todos os dados");
+    setUsers([...users, { ...form, role: 'user' }]);
+    setForm({ name: '', matricula: '', password: '' });
+  };
 
-    return (
-        <div className="p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4">Gestão de Usuários do Sistema</h2>
-            <div className="bg-white p-4 rounded shadow mb-6">
-                <h3 className="font-bold mb-2">Novo Usuário</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-                    <input placeholder="Nome" className="border p-2" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-                    <input placeholder="Matrícula (Login)" className="border p-2" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} />
-                    <input placeholder="Senha" type="password" className="border p-2" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-                    <select className="border p-2" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
-                <button onClick={handleAdd} className="bg-green-600 text-white px-4 py-2 rounded font-bold">Adicionar Usuário</button>
-            </div>
-
-            <div className="bg-white rounded shadow">
-                {users.map(u => (
-                    <div key={u.matricula} className="p-3 border-b flex justify-between items-center hover:bg-gray-50">
-                        <div>
-                            <span className="font-bold">{u.name}</span> ({u.matricula}) - <span className="text-xs bg-gray-200 px-1 rounded">{u.role}</span>
-                        </div>
-                        <button onClick={() => handleDelete(u.matricula)} className="text-red-600 hover:bg-red-100 p-2 rounded"><Icons.Trash /></button>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const ScreenAdminSettings = ({ 
-    settings, setSettings, 
-    employees, setEmployees, 
-    users, setUsers,
-    docs, onSaveExternal, onDeleteDoc, editingDoc,
-    activeTab, setActiveTab
-}) => {
-    const [newTag, setNewTag] = useState('');
-    const [newLocation, setNewLocation] = useState('');
-    const [networkPath, setNetworkPath] = useState('');
-    const [wifiName, setWifiName] = useState('');
-
-    useEffect(() => {
-        if (settings.registeredNetwork) setNetworkPath(settings.registeredNetwork);
-        if (settings.wifiNetwork) setWifiName(settings.wifiNetwork);
-    }, [settings]);
-
-    const addTag = () => {
-        if(newTag && !settings.tags?.includes(newTag)) {
-            setSettings({...settings, tags: [...(settings.tags || []), newTag]});
-            setNewTag('');
-        }
-    };
-    const removeTag = (tag) => {
-        setSettings({...settings, tags: settings.tags.filter(t => t !== tag)});
-    };
-
-    const addLocation = () => {
-        if(newLocation && !settings.locations?.includes(newLocation)) {
-            setSettings({...settings, locations: [...(settings.locations || []), newLocation]});
-            setNewLocation('');
-        }
-    };
-    const removeLocation = (loc) => {
-        setSettings({...settings, locations: settings.locations.filter(l => l !== loc)});
-    };
-
-    const handleSaveNetwork = () => {
-        setSettings({...settings, registeredNetwork: networkPath});
-        alert("Caminho da Rede Salvo!");
-    };
-    
-    const handleSaveWifi = () => {
-        setSettings({...settings, wifiNetwork: wifiName});
-        alert("Rede Wi-Fi / Conexão Configurada!");
-    };
-
-    const tabs = [
-        { id: 'general', label: 'Geral / Rede e Conexão', icon: Icons.Settings },
-        { id: 'employees', label: 'Funcionários', icon: Icons.Users },
-        { id: 'users', label: 'Usuários', icon: Icons.User },
-        { id: 'external_art', label: 'Cadastrar ART (PDF)', icon: Icons.Upload },
-    ];
-
-    return (
-        <div className="p-6 h-full flex flex-col">
-            <div className="mb-6 border-b border-gray-300 flex flex-wrap gap-2">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center px-6 py-3 font-bold text-sm rounded-t-lg transition-colors ${activeTab === tab.id ? 'bg-black text-yellow-400' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                    >
-                        <tab.icon className="w-4 h-4 mr-2"/> {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-                {activeTab === 'general' && (
-                    <div className="max-w-4xl mx-auto animate-fade-in">
-                        
-                        {/* Network Config */}
-                         <div className="bg-blue-50 border border-blue-200 p-6 rounded shadow mb-6">
-                            <h3 className="font-bold mb-4 border-b border-blue-200 pb-2 text-lg text-blue-800 flex items-center">
-                                <Icons.Wifi className="mr-2" /> Conectividade e Rede
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold mb-1">Nome da Rede Wi-Fi / Conexão:</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            className="border p-2 flex-1" 
-                                            placeholder="Ex: MinhaEmpresa_WiFi" 
-                                            value={wifiName} 
-                                            onChange={e => setWifiName(e.target.value)} 
-                                        />
-                                        <button onClick={handleSaveWifi} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">
-                                            SALVAR
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">Cadastre o nome da rede para identificar a conexão dos dispositivos.</p>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-bold mb-1">Caminho de Rede (Backup):</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            className="border p-2 flex-1" 
-                                            placeholder="Ex: \\servidor\arquivos" 
-                                            value={networkPath} 
-                                            onChange={e => setNetworkPath(e.target.value)} 
-                                        />
-                                        <button onClick={handleSaveNetwork} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">
-                                            SALVAR
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white p-6 rounded shadow">
-                                <h3 className="font-bold mb-2 border-b pb-2">Locais de Trabalho</h3>
-                                <div className="flex gap-2 mb-4">
-                                    <input 
-                                        className="border p-2 flex-1" 
-                                        placeholder="Ex: OFICINA, MINA..." 
-                                        value={newLocation} 
-                                        onChange={e => setNewLocation(e.target.value)} 
-                                    />
-                                    <button onClick={addLocation} className="bg-green-600 text-white px-3 py-2 rounded">Add</button>
-                                </div>
-                                <ul className="space-y-1">
-                                    {settings.locations?.map(loc => (
-                                        <li key={loc} className="flex justify-between bg-gray-50 p-2 rounded">
-                                            <span>{loc}</span>
-                                            <button onClick={() => removeLocation(loc)} className="text-red-500 font-bold">X</button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-6 rounded shadow">
-                                <h3 className="font-bold mb-2 border-b pb-2">Tags de Equipamentos (Sugestões)</h3>
-                                <div className="flex gap-2 mb-4">
-                                    <input 
-                                        className="border p-2 flex-1" 
-                                        placeholder="Ex: TR-01, ES-05..." 
-                                        value={newTag} 
-                                        onChange={e => setNewTag(e.target.value)} 
-                                    />
-                                    <button onClick={addTag} className="bg-green-600 text-white px-3 py-2 rounded">Add</button>
-                                </div>
-                                <ul className="space-y-1 max-h-60 overflow-y-auto">
-                                    {settings.tags?.map(tag => (
-                                        <li key={tag} className="flex justify-between bg-gray-50 p-2 rounded">
-                                            <span>{tag}</span>
-                                            <button onClick={() => removeTag(tag)} className="text-red-500 font-bold">X</button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'employees' && (
-                    <ScreenEmployeeRegister employees={employees} setEmployees={setEmployees} isAdmin={true} />
-                )}
-
-                {activeTab === 'users' && (
-                    <ScreenAdminUsers users={users} setUsers={setUsers} />
-                )}
-
-                {activeTab === 'external_art' && (
-                    <ScreenExternalArt onSave={onSaveExternal} docs={docs} onDelete={onDeleteDoc} editingDoc={editingDoc} />
-                )}
-            </div>
-        </div>
-    );
-};
-
-const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSendNetwork }) => {
-    const [search, setSearch] = useState('');
-
-    const filtered = docs.filter(d => 
-        (d.taskName?.toLowerCase().includes(search.toLowerCase()) ||
-        d.om?.toLowerCase().includes(search.toLowerCase()) ||
-        d.tag?.toLowerCase().includes(search.toLowerCase()) ||
-        d.fileName?.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    return (
-        <div className="p-6 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold flex items-center"><Icons.Folder className="mr-2"/> ARQUIVO DOCUMENTOS</h2>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        placeholder="Pesquisar (OM, TAG, Nome)..." 
-                        className="border p-2 rounded w-64 pl-8"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                    <Icons.FileText className="w-4 h-4 absolute left-2 top-3 text-gray-400" />
-                </div>
-            </div>
-
-            <div className="bg-white rounded shadow overflow-hidden flex-1 overflow-y-auto">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-800 text-white">
-                        <tr>
-                            <th className="p-3 text-center w-12">Tipo</th>
-                            <th className="p-3 text-left">Identificação</th>
-                            <th className="p-3 text-left">Detalhes</th>
-                            <th className="p-3 text-left">Data/Hora</th>
-                            <th className="p-3 text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filtered.map(doc => (
-                            <tr key={doc.id} className="border-b hover:bg-gray-50">
-                                <td className="p-3 text-center">
-                                    {doc.type === 'emergencial' && <Icons.AlertTriangle className="text-yellow-600 mx-auto" />}
-                                    {doc.type === 'atividade' && <Icons.ClipboardList className="text-blue-600 mx-auto" />}
-                                    {doc.type === 'checklist' && <Icons.CheckSquare className="text-green-600 mx-auto" />}
-                                    {doc.type === 'external' && <Icons.Upload className="text-purple-600 mx-auto" />}
-                                </td>
-                                <td className="p-3">
-                                    <div className="font-bold">{doc.taskName}</div>
-                                    <div className="text-xs text-gray-500">ID: {doc.id}</div>
-                                </td>
-                                <td className="p-3">
-                                    {doc.om !== 'N/A' && <div><span className="font-bold">OM:</span> {doc.om}</div>}
-                                    {doc.tag !== 'N/A' && <div><span className="font-bold">TAG:</span> {doc.tag}</div>}
-                                    {doc.artNumber && <div><span className="font-bold">ART:</span> {doc.artNumber}</div>}
-                                </td>
-                                <td className="p-3">
-                                    <div>{doc.date}</div>
-                                    <div className="text-xs text-gray-500">{doc.time}</div>
-                                </td>
-                                <td className="p-3 text-center space-x-1">
-                                    <button onClick={() => onView(doc)} className="bg-gray-200 hover:bg-gray-300 p-2 rounded" title="Visualizar"><Icons.Eye className="w-4 h-4"/></button>
-                                    <button onClick={() => onDownload(doc)} className="bg-green-100 hover:bg-green-200 p-2 rounded text-green-700" title="Baixar PDF"><Icons.Download className="w-4 h-4"/></button>
-                                    <button onClick={() => onSendNetwork(doc)} className="bg-purple-100 hover:bg-purple-200 p-2 rounded text-purple-700" title="Enviar Rede"><Icons.Cloud className="w-4 h-4"/></button>
-                                    <button onClick={() => onEdit(doc)} className="bg-yellow-400 hover:bg-yellow-500 p-2 rounded" title="Editar"><Icons.Edit className="w-4 h-4"/></button>
-                                    <button onClick={() => onDelete(doc.id)} className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded" title="Excluir"><Icons.Trash className="w-4 h-4"/></button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filtered.length === 0 && (
-                            <tr><td colSpan={5} className="p-8 text-center text-gray-400 italic">Nenhum documento encontrado.</td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
-const Sidebar = ({ user, activeScreen, onNavigate, onLogout }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Início / Monitor', icon: Icons.Home },
-    { id: 'art_emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
-    { id: 'art_atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
-    { id: 'checklist', label: 'Checklist / Encerrar', icon: Icons.CheckSquare },
-    { id: 'history', label: 'Histórico Documentos', icon: Icons.FileText },
-    { id: 'file_documents', label: 'ARQUIVO DOCUMENTOS', icon: Icons.Folder },
-    { id: 'admin_settings', label: 'Configurações', icon: Icons.Settings },
-  ];
+  const handleDelete = (matricula) => {
+      if (confirm("Excluir usuário de sistema?")) {
+          setUsers(users.filter(u => u.matricula !== matricula));
+      }
+  };
 
   return (
-    <div className="w-64 bg-zinc-900 text-white h-screen fixed left-0 top-0 flex flex-col shadow-2xl print:hidden z-40 md:translate-x-0 transition-transform -translate-x-full md:block hidden">
-      <div className="p-6 border-b border-zinc-800 flex items-center justify-center bg-yellow-500 text-black">
-        <h1 className="text-2xl font-bold tracking-tighter">ART SYSTEM</h1>
+    <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded">
+      <h2 className="text-2xl font-bold mb-4">Gestão de Usuários (Login)</h2>
+      <div className="grid grid-cols-1 gap-3 mb-4">
+        <input placeholder="Nome do Usuário" className="border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+        <div className="grid grid-cols-2 gap-2">
+            <input placeholder="Login (Matrícula)" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} />
+            <input placeholder="Senha" type="password" className="border p-2 rounded" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+        </div>
       </div>
+      <button onClick={handleAdd} className="w-full bg-black text-white p-2 rounded font-bold mb-6">CRIAR USUÁRIO</button>
+
+      <div className="space-y-2">
+        {users.map(u => (
+          <div key={u.matricula} className="flex justify-between items-center border p-3 rounded">
+            <div>
+                <p className="font-bold">{u.name} {u.role === 'admin' && <span className="text-xs bg-black text-white px-1 rounded">ADMIN</span>}</p>
+                <p className="text-xs text-gray-500">Login: {u.matricula}</p>
+            </div>
+            <button onClick={() => handleDelete(u.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees, setEmployees, externalArtProps, activeTab, setActiveTab }) => {
+  const [newTag, setNewTag] = useState('');
+  const [newLoc, setNewLoc] = useState('');
+  const [networkPath, setNetworkPath] = useState(settings.registeredNetwork || '');
+  const [wifiName, setWifiName] = useState(settings.wifiName || '');
+
+  const handleAddTag = () => {
+    if(newTag) { setSettings({...settings, tags: [...settings.tags, newTag]}); setNewTag(''); }
+  };
+  const handleAddLoc = () => {
+    if(newLoc) { setSettings({...settings, locations: [...settings.locations, newLoc]}); setNewLoc(''); }
+  };
+  const handleSaveNetwork = () => {
+      setSettings({ ...settings, registeredNetwork: networkPath, wifiName: wifiName });
+      alert("Configurações de Rede salvas!");
+  };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 flex items-center"><Icons.Settings className="mr-2"/> CONFIGURAÇÕES GERAIS</h2>
       
-      <div className="flex-1 overflow-y-auto py-4">
-        {menuItems.map(item => (
-            <button 
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center p-4 hover:bg-zinc-800 transition ${activeScreen === item.id ? 'bg-zinc-800 border-r-4 border-yellow-500' : ''}`}
-            >
-              <span className="mr-3 text-yellow-500"><item.icon /></span>
-              {item.label}
-            </button>
-          )
-        )}
+      {/* TABS HEADER */}
+      <div className="flex gap-1 mb-6 border-b overflow-x-auto">
+          <button onClick={() => setActiveTab('general')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'general' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>GERAL & REDE</button>
+          <button onClick={() => setActiveTab('employees')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'employees' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>FUNCIONÁRIOS</button>
+          <button onClick={() => setActiveTab('users')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'users' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>USUÁRIOS SISTEMA</button>
+          <button onClick={() => setActiveTab('external_art')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'external_art' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>CADASTRAR ART (PDF)</button>
       </div>
 
-      <div className="p-4 border-t border-zinc-800">
-        <div className="mb-4">
-            <p className="font-bold text-sm">{user.name}</p>
-            <p className="text-xs text-gray-400">{user.role === 'admin' ? 'Administrador' : 'Usuário'}</p>
-        </div>
-        <button onClick={onLogout} className="w-full flex items-center justify-center bg-red-600 hover:bg-red-700 p-2 rounded font-bold text-sm">
-          <span className="mr-2"><Icons.LogOut /></span> SAIR
+      <div className="bg-white p-6 rounded-b-lg shadow min-h-[500px]">
+        {activeTab === 'general' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* NETWORK CONFIG */}
+                <div className="md:col-span-2 bg-gray-50 p-4 rounded border border-gray-300">
+                    <h3 className="font-bold text-lg mb-4 flex items-center"><Icons.Wifi className="mr-2"/> REDE E CONEXÃO</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block font-bold text-sm mb-1">Nome da Rede Wi-Fi / Conexão</label>
+                            <input 
+                                className="w-full border p-2 rounded" 
+                                value={wifiName} 
+                                onChange={e => setWifiName(e.target.value)}
+                                placeholder="Ex: WIFI-MINERADORA-01"
+                            />
+                        </div>
+                        <div>
+                            <label className="block font-bold text-sm mb-1">Caminho da Rede / Banco de Dados</label>
+                            <input 
+                                className="w-full border p-2 rounded" 
+                                value={networkPath} 
+                                onChange={e => setNetworkPath(e.target.value)}
+                                placeholder="Ex: \\servidor\dados\app"
+                            />
+                        </div>
+                    </div>
+                    <button onClick={handleSaveNetwork} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded font-bold">SALVAR REDE</button>
+                </div>
+
+                <div>
+                    <h3 className="font-bold mb-2">Tags Cadastradas</h3>
+                    <div className="flex gap-2 mb-2">
+                        <input className="border p-2 flex-1" value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="Nova TAG"/>
+                        <button onClick={handleAddTag} className="bg-green-600 text-white px-4 rounded">+</button>
+                    </div>
+                    <div className="border p-2 h-48 overflow-y-auto bg-gray-50 rounded">
+                        {settings.tags.map(t => <div key={t} className="border-b p-1">{t}</div>)}
+                    </div>
+                </div>
+                <div>
+                    <h3 className="font-bold mb-2">Locais de Trabalho</h3>
+                    <div className="flex gap-2 mb-2">
+                        <input className="border p-2 flex-1" value={newLoc} onChange={e => setNewLoc(e.target.value)} placeholder="Novo Local"/>
+                        <button onClick={handleAddLoc} className="bg-green-600 text-white px-4 rounded">+</button>
+                    </div>
+                    <div className="border p-2 h-48 overflow-y-auto bg-gray-50 rounded">
+                        {settings.locations.map(l => <div key={l} className="border-b p-1">{l}</div>)}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {activeTab === 'employees' && <ScreenEmployeeRegister employees={employees} setEmployees={setEmployees} />}
+        {activeTab === 'users' && <ScreenAdminUsers users={users} setUsers={setUsers} />}
+        {activeTab === 'external_art' && <ScreenExternalArt {...externalArtProps} />}
+      </div>
+    </div>
+  );
+};
+
+const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNetwork }) => {
+  const [search, setSearch] = useState('');
+  const filtered = docs.filter(d => 
+      d.taskName?.toLowerCase().includes(search.toLowerCase()) ||
+      d.om?.includes(search) ||
+      d.tag?.includes(search) ||
+      d.fileName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="p-6">
+       <div className="bg-white p-6 rounded shadow">
+           <h2 className="text-2xl font-bold mb-6 flex items-center"><Icons.Folder className="mr-2"/> ARQUIVO DOCUMENTOS (GERAL)</h2>
+           <div className="mb-4">
+               <input 
+                  className="w-full p-3 border rounded bg-gray-50" 
+                  placeholder="Pesquisar por Tarefa, OM, TAG ou Nome do Arquivo..." 
+                  value={search} 
+                  onChange={e => setSearch(e.target.value)}
+               />
+           </div>
+           <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                   <thead className="bg-gray-100">
+                       <tr>
+                           <th className="p-3">Tipo</th>
+                           <th className="p-3">Identificação</th>
+                           <th className="p-3">Data/Hora</th>
+                           <th className="p-3 text-center">Gerenciamento</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       {filtered.map(doc => (
+                           <tr key={doc.id} className="border-b hover:bg-gray-50">
+                               <td className="p-3 font-bold text-xs uppercase">{doc.type}</td>
+                               <td className="p-3">
+                                   <div className="font-bold">{doc.taskName || doc.fileName}</div>
+                                   <div className="text-xs text-gray-500">{doc.om} | {doc.tag} | ID: {doc.maintenanceId || doc.id}</div>
+                               </td>
+                               <td className="p-3 text-sm">{doc.date} {doc.time}</td>
+                               <td className="p-3">
+                                   <div className="flex justify-center gap-2">
+                                       <button onClick={() => onView(doc)} className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold hover:bg-blue-200 flex items-center"><Icons.Eye size={14} className="mr-1"/> VER</button>
+                                       <button onClick={() => onDownload(doc)} className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-bold hover:bg-green-200 flex items-center"><Icons.Download size={14} className="mr-1"/> PDF</button>
+                                       <button onClick={() => onEdit(doc)} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200 flex items-center"><Icons.Edit size={14} className="mr-1"/> EDIT</button>
+                                       <button onClick={() => onDelete(doc.id)} className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200 flex items-center"><Icons.Trash size={14} className="mr-1"/> DEL</button>
+                                       <button onClick={() => onSendToNetwork(doc)} className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold hover:bg-gray-200 flex items-center"><Icons.Server size={14} className="mr-1"/> REDE</button>
+                                   </div>
+                               </td>
+                           </tr>
+                       ))}
+                   </tbody>
+               </table>
+           </div>
+       </div>
+    </div>
+  );
+};
+
+const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin }) => {
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Icons.Activity },
+    { id: 'emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
+    { id: 'atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
+    { id: 'checklist', label: 'Checklist', icon: Icons.CheckSquare },
+    { id: 'history', label: 'Histórico Doc.', icon: Icons.Clock },
+    { id: 'file_documents', label: 'Arquivo Documentos', icon: Icons.Folder },
+  ];
+
+  if (isAdmin) {
+      menuItems.push({ id: 'admin_settings', label: 'Configurações', icon: Icons.Settings });
+  }
+
+  return (
+    <div className="w-64 bg-black text-white h-screen fixed left-0 top-0 flex flex-col shadow-2xl z-40 hidden md:flex">
+      <div className="p-6 border-b border-gray-800">
+        <h1 className="text-2xl font-bold tracking-tighter text-yellow-500 flex items-center">
+          <Icons.Activity className="mr-2"/> ART APP
+        </h1>
+        <p className="text-xs text-gray-400 mt-1">Gestão de Segurança</p>
+      </div>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {menuItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActiveScreen(item.id)}
+            className={`w-full flex items-center p-3 rounded transition-all duration-200 ${activeScreen === item.id ? 'bg-yellow-500 text-black font-bold shadow-lg translate-x-2' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
+          >
+            <item.icon className="mr-3 w-5 h-5" />
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-gray-800">
+        <button onClick={onLogout} className="w-full flex items-center p-3 text-red-400 hover:bg-red-900/20 rounded transition-colors">
+          <Icons.LogOut className="mr-3 w-5 h-5" /> Sair
         </button>
       </div>
     </div>
   );
 };
 
-// Mobile Sidebar
-const MobileSidebar = ({ user, activeScreen, onNavigate, onLogout, isOpen, onClose }) => {
+const MobileSidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOpen, onClose }) => {
     const menuItems = [
-        { id: 'dashboard', label: 'Início / Monitor', icon: Icons.Home },
-        { id: 'art_emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
-        { id: 'art_atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
-        { id: 'checklist', label: 'Checklist / Encerrar', icon: Icons.CheckSquare },
-        { id: 'history', label: 'Histórico Documentos', icon: Icons.FileText },
-        { id: 'file_documents', label: 'ARQUIVO DOCUMENTOS', icon: Icons.Folder },
-        { id: 'admin_settings', label: 'Configurações', icon: Icons.Settings },
+      { id: 'dashboard', label: 'Dashboard', icon: Icons.Activity },
+      { id: 'emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
+      { id: 'atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
+      { id: 'checklist', label: 'Checklist', icon: Icons.CheckSquare },
+      { id: 'history', label: 'Histórico Doc.', icon: Icons.Clock },
+      { id: 'file_documents', label: 'Arquivo Documentos', icon: Icons.Folder },
     ];
 
+    if (isAdmin) {
+        menuItems.push({ id: 'admin_settings', label: 'Configurações', icon: Icons.Settings });
+    }
+  
     return (
-        <div className={`fixed inset-0 z-50 md:hidden ${isOpen ? 'block' : 'hidden'}`}>
-            <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
-            <div className="absolute left-0 top-0 w-64 bg-zinc-900 text-white h-full flex flex-col shadow-2xl transition-transform transform translate-x-0">
-                <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-yellow-500 text-black">
-                     <h1 className="text-xl font-bold tracking-tighter">ART SYSTEM</h1>
-                     <button onClick={onClose}><Icons.X className="w-5 h-5"/></button>
-                </div>
-                <div className="flex-1 overflow-y-auto py-4">
-                    {menuItems.map(item => (
-                        <button 
-                        key={item.id}
-                        onClick={() => { onNavigate(item.id); onClose(); }}
-                        className={`w-full flex items-center p-4 hover:bg-zinc-800 transition ${activeScreen === item.id ? 'bg-zinc-800 border-r-4 border-yellow-500' : ''}`}
-                        >
-                        <span className="mr-3 text-yellow-500"><item.icon /></span>
-                        {item.label}
-                        </button>
-                    )
-                    )}
-                </div>
-                <div className="p-4 border-t border-zinc-800">
-                    <div className="mb-4">
-                        <p className="font-bold text-sm">{user.name}</p>
-                        <p className="text-xs text-gray-400">{user.role === 'admin' ? 'Administrador' : 'Usuário'}</p>
-                    </div>
-                    <button onClick={onLogout} className="w-full flex items-center justify-center bg-red-600 hover:bg-red-700 p-2 rounded font-bold text-sm">
-                        <span className="mr-2"><Icons.LogOut /></span> SAIR
-                    </button>
-                </div>
+      <>
+        {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={onClose}></div>}
+        <div className={`fixed top-0 left-0 h-full w-64 bg-black text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+                <h1 className="text-2xl font-bold tracking-tighter text-yellow-500">ART APP</h1>
+                <button onClick={onClose}><Icons.X /></button>
+            </div>
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                {menuItems.map(item => (
+                <button
+                    key={item.id}
+                    onClick={() => { setActiveScreen(item.id); onClose(); }}
+                    className={`w-full flex items-center p-3 rounded transition-all duration-200 ${activeScreen === item.id ? 'bg-yellow-500 text-black font-bold' : 'hover:bg-gray-800 text-gray-300'}`}
+                >
+                    <item.icon className="mr-3 w-5 h-5" />
+                    {item.label}
+                </button>
+                ))}
+            </nav>
+            <div className="p-4 border-t border-gray-800">
+                <button onClick={onLogout} className="w-full flex items-center p-3 text-red-400 hover:bg-red-900/20 rounded">
+                <Icons.LogOut className="mr-3 w-5 h-5" /> Sair
+                </button>
             </div>
         </div>
+      </>
     );
-}
+};
 
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [users, setUsers] = useState(() => getLocalStorage('users', []));
-  const [employees, setEmployees] = useState(() => getLocalStorage('employees', []));
-  const [docs, setDocs] = useState(() => getLocalStorage('documents', []));
-  const [activeMaintenances, setActiveMaintenances] = useState(() => getLocalStorage('active_maintenances', []));
-  
-  const [settings, setSettings] = useState(() => {
-      const initial = getLocalStorage('settings', { 
-          locations: ['OFICINA', 'MINA'], 
-          tags: [] 
-      });
-      if (!initial.networkPath) initial.networkPath = '';
-      if (!initial.scpTarget) initial.scpTarget = '';
-      if (!initial.wifiNetwork) initial.wifiNetwork = '';
-      return initial;
-  });
-
-  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState(getLocalStorage('users', []));
+  const [employees, setEmployees] = useState(getLocalStorage('employees', []));
+  const [activeScreen, setActiveScreen] = useState('dashboard');
+  const [docs, setDocs] = useState(getLocalStorage('docs', []));
+  const [settings, setSettings] = useState(getLocalStorage('settings', { tags: ['TR-01', 'CV-02'], locations: ['Mina', 'Oficina'], registeredNetwork: '', wifiName: '' }));
+  const [activeMaintenances, setActiveMaintenances] = useState(getLocalStorage('activeMaintenances', []));
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [editingDoc, setEditingDoc] = useState(null);
-  const [viewingDoc, setViewingDoc] = useState(null);
   const [settingsTab, setSettingsTab] = useState('general');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => setLocalStorage('users', users), [users]);
-  useEffect(() => setLocalStorage('employees', employees), [employees]);
-  useEffect(() => setLocalStorage('documents', docs), [docs]);
-  useEffect(() => setLocalStorage('active_maintenances', activeMaintenances), [activeMaintenances]);
-  useEffect(() => setLocalStorage('settings', settings), [settings]);
+  useEffect(() => { setLocalStorage('users', users); }, [users]);
+  useEffect(() => { setLocalStorage('employees', employees); }, [employees]);
+  useEffect(() => { setLocalStorage('docs', docs); }, [docs]);
+  useEffect(() => { setLocalStorage('settings', settings); }, [settings]);
+  useEffect(() => { setLocalStorage('activeMaintenances', activeMaintenances); }, [activeMaintenances]);
 
-  const handleLogin = (u) => setUser(u);
-  const handleLogout = () => setUser(null);
+  const handleLogin = (user) => setCurrentUser(user);
+  const handleLogout = () => setCurrentUser(null);
 
-  // Function to refresh data from storage (simulating network sync)
-  const refreshData = () => {
-      const storedMaintenances = getLocalStorage('active_maintenances', []);
-      const storedDocs = getLocalStorage('documents', []);
-      // Only update if different to prevent re-renders loop if we were using real state comparison, 
-      // but for this mock, setting state triggers re-render which is what we want for timer updates
-      setActiveMaintenances(storedMaintenances);
-      setDocs(storedDocs);
-  };
-
-  const handleSaveDoc = (docData) => {
-    // Logic to handle maintenance lifecycle and linking
-    let updatedMaintenances = [...activeMaintenances];
-    let newMaintenanceId = docData.maintenanceId;
-
-    // If editing, use existing ID. If new, determine if part of active or new maintenance
-    if (editingDoc && editingDoc.maintenanceId) {
-        // Just update
-        newMaintenanceId = editingDoc.maintenanceId;
-    } else if (docData.type !== 'external') {
-        // Check if there is an active maintenance for this TAG+OM combo?
-        // Or simply create a new one if not provided (ART starts maintenance)
-        // So for now, ART always creates new maintenance ID based on doc ID
-        if (docData.type === 'emergencial' || docData.type === 'atividade') {
-            // START MAINTENANCE
-            // Check for existing active by TAG/OM to prevent duplicates if logic requires, 
-            // but here we assume new ART = New Maintenance unless ID passed (not implemented in UI yet to select existing)
-            // So for now, ART always creates new maintenance ID based on doc ID
-            newMaintenanceId = `MNT-${docData.id}`;
-            
-            // Create maintenance record
-            const maintenanceRecord = {
-                id: newMaintenanceId,
-                startTime: new Date().toISOString(),
-                status: 'active',
-                userId: user.matricula,
-                userName: user.name,
-                tag: docData.tag,
-                om: docData.om,
-                taskName: docData.taskName,
-                type: docData.type
-            };
-            updatedMaintenances.push(maintenanceRecord);
-        } else if (docData.type === 'checklist') {
-           // Checklist usually closes maintenance. It should ideally link to an active one.
-           // For simplicity, if no ID linked, we treat as standalone or auto-link to last active of same tag?
-           // Current simple logic: check if we are editing or if we can find an active one.
-           const activeM = activeMaintenances.find(m => m.tag === docData.tag && m.om === docData.om && m.status !== 'finished');
-           if (activeM) {
-               newMaintenanceId = activeM.id;
-           } else {
-               newMaintenanceId = `MNT-${docData.id}`; // Standalone checklist
-               updatedMaintenances.push({
-                   id: newMaintenanceId,
-                   startTime: new Date().toISOString(),
-                   status: 'active',
-                   userId: user.matricula,
-                   userName: user.name,
-                   tag: docData.tag,
-                   om: docData.om,
-                   taskName: docData.taskName,
-                   type: 'checklist'
-               });
-           }
-        }
-    }
-
-    const newDoc = { ...docData, maintenanceId: newMaintenanceId };
-
-    if (editingDoc) {
-        setDocs(docs.map(d => d.id === editingDoc.id ? newDoc : d));
-        
-        // Update maintenance info if header changed
-        if (newDoc.maintenanceId) {
-             const mIndex = updatedMaintenances.findIndex(m => m.id === newDoc.maintenanceId);
-             if (mIndex >= 0) {
-                 updatedMaintenances[mIndex] = {
-                     ...updatedMaintenances[mIndex],
-                     tag: newDoc.tag,
-                     om: newDoc.om,
-                     taskName: newDoc.taskName
-                 };
-             }
-        }
-    } else {
-        setDocs([...docs, newDoc]);
-    }
-    
-    setActiveMaintenances(updatedMaintenances);
-    setEditingDoc(null);
-    setCurrentScreen('dashboard');
-    alert("Documento Salvo com Sucesso!");
+  const startMaintenance = (doc) => {
+      const exists = activeMaintenances.find(m => m.id === doc.maintenanceId);
+      if (!exists) {
+          const newM = {
+              id: doc.maintenanceId,
+              tag: doc.tag,
+              om: doc.om,
+              taskName: doc.taskName,
+              startTime: new Date(),
+              status: 'active',
+              userName: currentUser.name,
+              userId: currentUser.matricula
+          };
+          setActiveMaintenances([...activeMaintenances, newM]);
+      } else {
+         // If editing and changing critical info, update maintenance record
+         const updated = activeMaintenances.map(m => m.id === doc.maintenanceId ? { ...m, tag: doc.tag, om: doc.om, taskName: doc.taskName } : m);
+         setActiveMaintenances(updated);
+      }
   };
 
   const handleFinishMaintenance = (maintenance) => {
-      if (maintenance.userId !== user.matricula) {
-          alert(`Apenas o responsável (${maintenance.userId}) pode encerrar esta manutenção.`);
-          return;
-      }
-      // Go to checklist screen pre-filled
-      setEditingDoc(null); // Clear any edit state
-      setCurrentScreen('checklist');
-      // We pass pre-fill data via prop to screen, but since state is in App, we can use a temp state or just pass prop
-      // We will use a special prop on ScreenChecklist called 'preFill'
+      const updated = activeMaintenances.map(m => 
+          m.id === maintenance.id 
+          ? { ...m, status: 'finished', endTime: new Date() } 
+          : m
+      );
+      setActiveMaintenances(updated);
   };
-  
-  // We need a state for pre-fill to pass to Checklist when finishing maintenance
-  const [checklistPreFill, setChecklistPreFill] = useState(null);
-  
-  const triggerFinish = (maintenance) => {
-      if (maintenance.userId !== user.matricula) return;
-      setChecklistPreFill({
-          om: maintenance.om,
-          tag: maintenance.tag,
-          taskName: maintenance.taskName,
-          maintenanceId: maintenance.id // Pass ID to link
-      });
-      setCurrentScreen('checklist');
-  };
-  
-  // Intercept checklist save to finish maintenance
-  const handleChecklistSave = (docData) => {
-      // Save doc
-      let updatedMaintenances = [...activeMaintenances];
-      let mId = docData.maintenanceId;
+
+  const handleSaveDoc = (docData) => {
+      let finalDoc = { ...docData };
       
-      // Find maintenance and close it
-      if (mId) {
-          const idx = updatedMaintenances.findIndex(m => m.id === mId);
-          if (idx >= 0) {
-              updatedMaintenances[idx] = {
-                  ...updatedMaintenances[idx],
-                  status: 'finished',
-                  endTime: new Date().toISOString()
-              };
+      // Logic to manage ID and Maintenance ID
+      if (editingDoc) {
+          // Updating existing doc
+          const updatedDocs = docs.map(d => d.id === editingDoc.id ? finalDoc : d);
+          setDocs(updatedDocs);
+          
+          // If linked to a maintenance, ensure maintenance record is updated
+          if (finalDoc.maintenanceId) {
+              startMaintenance(finalDoc); 
           }
+          setEditingDoc(null);
+          alert("Documento atualizado com sucesso!");
       } else {
-          // Check if there is an active maintenance for this TAG+OM combo?
-          // or look up by OM/TAG
-           const idx = updatedMaintenances.findIndex(m => m.tag === docData.tag && m.om === docData.om && m.status !== 'finished');
-           if (idx >= 0) {
-               mId = updatedMaintenances[idx].id;
-               updatedMaintenances[idx] = { ...updatedMaintenances[idx], status: 'finished', endTime: new Date().toISOString() };
-           }
+          // New Doc
+          if (docData.type === 'external') {
+              // External docs don't necessarily start a maintenance unless specified, simplified here.
+          } else {
+              // Generate unified ID based on first doc (ART)
+              // If we are starting a flow, we generate ID. If we are doing Checklist, we might need to link (not implemented in UI flow yet, assuming standalone or sequential)
+              // For this version, let's use the doc.id as base for maintenance
+              finalDoc.maintenanceId = `MNT-${finalDoc.id}`;
+          }
+          
+          setDocs([...docs, finalDoc]);
+          if (docData.type !== 'external') {
+             startMaintenance(finalDoc);
+          }
+          alert("Documento salvo com sucesso!");
       }
-      
-      const finalDoc = { ...docData, maintenanceId: mId };
-      setDocs([...docs, finalDoc]);
-      setActiveMaintenances(updatedMaintenances);
-      setChecklistPreFill(null);
-      setCurrentScreen('dashboard');
-      alert("Manutenção Encerrada com Sucesso!");
+      setActiveScreen('history');
   };
 
   const handleDeleteDoc = (id) => {
-      if(confirm("ATENÇÃO: Deseja realmente excluir este documento permanentemente?")) {
+      if (confirm("Tem certeza que deseja excluir este documento?")) {
           const doc = docs.find(d => d.id === id);
           setDocs(docs.filter(d => d.id !== id));
-          
-          // If it was the starter of a maintenance, should we delete the maintenance record?
-          // Maybe if it's the only doc? For now, keep it simple.
-          // If it's an active maintenance, maybe remove it from monitor?
+          // Also remove maintenance if it exists
           if (doc && doc.maintenanceId) {
-              // Check if any other docs exist for this maintenance
-              const others = docs.filter(d => d.maintenanceId === doc.maintenanceId && d.id !== id);
-              if (others.length === 0) {
-                  setActiveMaintenances(activeMaintenances.filter(m => m.id !== doc.maintenanceId));
-              }
+              setActiveMaintenances(activeMaintenances.filter(m => m.id !== doc.maintenanceId));
           }
       }
   };
 
   const handleEditDoc = (doc) => {
-      if (doc.type === 'external') {
-          // Redirect to admin settings tab for external art
-          setEditingDoc(doc);
-          setSettingsTab('external_art');
-          setCurrentScreen('admin_settings');
-          return;
-      }
       setEditingDoc(doc);
-      if (doc.type === 'emergencial') setCurrentScreen('art_emergencial');
-      else if (doc.type === 'atividade') setCurrentScreen('art_atividade');
-      else if (doc.type === 'checklist') setCurrentScreen('checklist');
+      if (doc.type === 'external') {
+          setSettingsTab('external_art');
+          setActiveScreen('admin_settings');
+      } else {
+          setActiveScreen(doc.type); // 'emergencial', 'atividade', 'checklist'
+      }
   };
 
   const handleViewDoc = (doc) => {
-      setViewingDoc({...doc, autoPrint: false});
+      setPreviewDoc({ ...doc, autoPrint: false });
   };
 
   const handleDownloadDoc = (doc) => {
       if (doc.type === 'external' && doc.fileContent) {
-          // Direct download for external
-          alert("O sistema irá abrir a janela de salvar arquivo.");
-           if (doc.fileContent.startsWith('data:')) {
-                fetch(doc.fileContent)
-                .then(res => res.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = doc.fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                })
-                .catch(() => alert('Erro ao processar arquivo.'));
-            } else {
-                // Legacy support
-                const link = document.createElement('a');
-                link.href = doc.fileContent;
-                link.download = doc.fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+         // External PDF download logic using Blob
+         const byteCharacters = atob(doc.fileContent.split(',')[1]);
+         const byteNumbers = new Array(byteCharacters.length);
+         for (let i = 0; i < byteCharacters.length; i++) {
+             byteNumbers[i] = byteCharacters.charCodeAt(i);
+         }
+         const byteArray = new Uint8Array(byteNumbers);
+         const blob = new Blob([byteArray], {type: 'application/pdf'});
+         const link = document.createElement('a');
+         link.href = window.URL.createObjectURL(blob);
+         link.download = doc.fileName || `documento-${doc.id}.pdf`;
+         link.click();
       } else {
-          // Open viewer to print/save
-          setViewingDoc({...doc, autoPrint: false});
+         // Generated Doc: Open Viewer to print
+         setPreviewDoc({ ...doc, autoPrint: false });
       }
   };
 
-  const handleClearAllHistory = () => {
-      if (confirm("TEM CERTEZA ABSOLUTA? Isso apagará TODOS os documentos e histórico do sistema.")) {
-          if (confirm("Confirmação final: Todos os dados serão perdidos.")) {
-              setDocs([]);
-              setActiveMaintenances([]);
-              alert("Sistema limpo com sucesso.");
-          }
-      }
+  const handlePreviewAction = (formData) => {
+      setPreviewDoc({ ...formData, autoPrint: false });
   };
 
-  const handleSaveExternal = (doc) => {
-      if (editingDoc) {
-          setDocs(docs.map(d => d.id === editingDoc.id ? doc : d));
-          setEditingDoc(null);
-      } else {
-          setDocs([...docs, doc]);
+  const handleSendToNetwork = (doc) => {
+      if (!settings.registeredNetwork) {
+          alert("Nenhum caminho de rede configurado em Configurações.");
+          return;
       }
-      alert("Documento Externo Salvo!");
+      alert(`Enviando arquivo ${doc.id} para: ${settings.registeredNetwork}...\n(Simulação: Arquivo transferido com sucesso!)`);
   };
-  
-  const handleSendNetwork = (doc) => {
-      const net = settings.registeredNetwork;
-      if (!net) { alert("Configure a Rede nas Configurações."); return; }
-      if(confirm(`Enviar para ${net}?`)) alert("Enviado!");
-  }
 
-  if (!user) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} />;
+  const refreshData = () => {
+     // Re-read from local storage to simulate syncing
+     const m = localStorage.getItem('activeMaintenances');
+     if(m) setActiveMaintenances(JSON.parse(m));
+  };
+
+  if (!currentUser) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} />;
 
   return (
-    <div className="flex min-h-screen bg-gray-100 font-sans text-gray-900">
-      <Sidebar 
-        user={user} 
-        activeScreen={currentScreen} 
-        onNavigate={(screen) => {
-            setCurrentScreen(screen);
-            setEditingDoc(null);
-            setChecklistPreFill(null);
-            if (screen === 'admin_settings') setSettingsTab('general');
-        }} 
-        onLogout={handleLogout} 
-      />
+    <div className="min-h-screen bg-gray-100 text-gray-800 font-sans flex">
+      <Sidebar activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} />
+      <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} />
       
-      <MobileSidebar 
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        user={user}
-        activeScreen={currentScreen}
-        onNavigate={(screen) => {
-            setCurrentScreen(screen);
-            setEditingDoc(null);
-            setChecklistPreFill(null);
-            if (screen === 'admin_settings') setSettingsTab('general');
-        }}
-        onLogout={handleLogout}
-      />
-
       <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
-        {/* Mobile Header */}
-        <div className="md:hidden bg-zinc-900 text-white p-4 flex justify-between items-center shadow-md">
-            <div className="flex items-center">
-                <button onClick={() => setMobileMenuOpen(true)} className="mr-4"><Icons.Menu /></button>
-                <span className="font-bold text-yellow-500">ART SYSTEM</span>
-            </div>
-            <span className="text-xs">{user.name}</span>
-        </div>
+          {/* MOBILE HEADER */}
+          <div className="md:hidden bg-black text-white p-4 flex justify-between items-center shadow-md z-30">
+              <h1 className="font-bold text-yellow-500 tracking-tighter text-xl">ART APP</h1>
+              <button onClick={() => setMobileMenuOpen(true)}><Icons.Menu /></button>
+          </div>
 
-        <div className="flex-1 overflow-y-auto">
-            {currentScreen === 'dashboard' && (
+          <div className="flex-1 overflow-y-auto p-0 md:p-0 relative">
+             {activeScreen === 'dashboard' && (
                 <ScreenDashboard 
-                    currentUser={user} 
+                    currentUser={currentUser} 
                     activeMaintenances={activeMaintenances} 
-                    onFinishMaintenance={triggerFinish}
+                    onFinishMaintenance={handleFinishMaintenance}
                     refreshData={refreshData}
-                    networkName={settings.wifiNetwork}
+                    networkName={settings.wifiName}
                 />
-            )}
-            {currentScreen === 'art_emergencial' && (
-                <ScreenArtEmergencial 
-                    onSave={handleSaveDoc} 
+             )}
+             {activeScreen === 'emergencial' && <ScreenArtEmergencial onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} />}
+             {activeScreen === 'atividade' && <ScreenArtAtividade onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} externalDocs={docs.filter(d => d.type === 'external')} onPreview={handlePreviewAction} />}
+             {activeScreen === 'checklist' && <ScreenChecklist onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} preFill={null} />}
+             {activeScreen === 'history' && <ScreenHistory docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} activeMaintenances={activeMaintenances} />}
+             {activeScreen === 'file_documents' && <ScreenFileDocuments docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} />}
+             
+             {activeScreen === 'admin_settings' && (
+                 <ScreenAdminSettings 
+                    settings={settings} 
+                    setSettings={setSettings} 
+                    users={users} 
+                    setUsers={setUsers} 
                     employees={employees} 
-                    editingDoc={editingDoc}
-                    settings={settings}
-                    onPreview={handleViewDoc}
-                />
-            )}
-            {currentScreen === 'art_atividade' && (
-                <ScreenArtAtividade 
-                    onSave={handleSaveDoc} 
-                    employees={employees} 
-                    editingDoc={editingDoc}
-                    settings={settings}
-                    externalDocs={docs.filter(d => d.type === 'external')}
-                    onPreview={handleViewDoc}
-                />
-            )}
-            {currentScreen === 'checklist' && (
-                <ScreenChecklist 
-                    onSave={handleChecklistSave} 
-                    employees={employees} 
-                    editingDoc={editingDoc}
-                    preFill={checklistPreFill}
-                    settings={settings}
-                    onPreview={handleViewDoc}
-                />
-            )}
-            {currentScreen === 'history' && (
-                <ScreenHistory 
-                    docs={docs} 
-                    onDelete={handleDeleteDoc} 
-                    onEdit={handleEditDoc}
-                    onView={handleViewDoc}
-                    onDownload={handleDownloadDoc}
-                    isAdmin={true}
-                    settings={settings}
-                    onClearAll={handleClearAllHistory}
-                    activeMaintenances={activeMaintenances}
-                />
-            )}
-            {currentScreen === 'file_documents' && (
-                <ScreenFileDocuments 
-                    docs={docs}
-                    onView={handleViewDoc}
-                    onDownload={handleDownloadDoc}
-                    onEdit={handleEditDoc}
-                    onDelete={handleDeleteDoc}
-                    onSendNetwork={handleSendNetwork}
-                />
-            )}
-            {currentScreen === 'admin_settings' && (
-                <ScreenAdminSettings 
-                    settings={settings} setSettings={setSettings}
-                    employees={employees} setEmployees={setEmployees}
-                    users={users} setUsers={setUsers}
-                    docs={docs} onSaveExternal={handleSaveExternal} onDeleteDoc={handleDeleteDoc} editingDoc={editingDoc}
-                    activeTab={settingsTab} setActiveTab={setSettingsTab}
-                />
-            )}
-        </div>
+                    setEmployees={setEmployees}
+                    externalArtProps={{ onSave: handleSaveDoc, editingDoc: (editingDoc?.type === 'external' ? editingDoc : null) }}
+                    activeTab={settingsTab}
+                    setActiveTab={setSettingsTab}
+                 />
+             )}
+          </div>
       </div>
 
-      {viewingDoc && (
+      {previewDoc && (
         <PrintTemplate 
-            data={viewingDoc} 
-            type={viewingDoc.type} 
-            onClose={() => setViewingDoc(null)} 
+            data={previewDoc} 
+            type={previewDoc.type} 
+            onClose={() => setPreviewDoc(null)}
             settings={settings}
         />
       )}
@@ -2786,6 +2262,5 @@ const App = () => {
   );
 };
 
-const container = document.getElementById('root');
-const root = createRoot(container);
+const root = createRoot(document.getElementById('root'));
 root.render(<App />);
