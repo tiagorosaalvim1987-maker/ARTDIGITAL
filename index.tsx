@@ -770,6 +770,8 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
 const ScreenLogin = ({ onLogin, users, setUsers }) => {
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotMatricula, setForgotMatricula] = useState('');
   
   const handleLogin = (e) => {
     e.preventDefault();
@@ -787,38 +789,83 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
     alert('Admin criado! User: admin / Pass: admin');
   };
 
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    if (!forgotMatricula) return alert("Digite sua matrícula.");
+    
+    // Simulação de verificação
+    const userExists = users.some(u => u.matricula === forgotMatricula);
+    if (userExists) {
+        alert("Instruções de recuperação de senha foram enviadas para o e-mail cadastrado (Simulação).");
+        setShowForgot(false);
+        setForgotMatricula('');
+    } else {
+        alert("Matrícula não encontrada no sistema.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-yellow-500 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-2xl w-96 border-4 border-black">
+      <div className="bg-white p-8 rounded-lg shadow-2xl w-96 border-4 border-black relative">
         <h1 className="text-4xl font-bold text-center mb-6 tracking-tighter">ART <span className="text-yellow-500 bg-black px-2">APP</span></h1>
         <h2 className="text-center text-gray-600 mb-6">Análise Preliminar da Tarefa</h2>
         
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block font-bold mb-1">Matrícula</label>
-            <input 
-              type="text" 
-              className="w-full p-3 border-2 border-black rounded bg-gray-100 focus:bg-white outline-none" 
-              value={matricula} 
-              onChange={e => setMatricula(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block font-bold mb-1">Senha</label>
-            <input 
-              type="password" 
-              className="w-full p-3 border-2 border-black rounded bg-gray-100 focus:bg-white outline-none"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="w-full bg-black text-white font-bold py-3 rounded hover:bg-gray-800 transition">
-            ENTRAR
-          </button>
-        </form>
+        {!showForgot ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+                <label className="block font-bold mb-1">Matrícula</label>
+                <input 
+                type="text" 
+                className="w-full p-3 border-2 border-black rounded bg-gray-100 focus:bg-white outline-none" 
+                value={matricula} 
+                onChange={e => setMatricula(e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="block font-bold mb-1">Senha</label>
+                <input 
+                type="password" 
+                className="w-full p-3 border-2 border-black rounded bg-gray-100 focus:bg-white outline-none"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                />
+            </div>
+            <button type="submit" className="w-full bg-black text-white font-bold py-3 rounded hover:bg-gray-800 transition">
+                ENTRAR
+            </button>
+            
+            <button 
+                type="button" 
+                onClick={() => setShowForgot(true)}
+                className="block w-full text-center text-xs text-blue-600 hover:underline mt-2"
+            >
+                Esqueci minha senha
+            </button>
+            </form>
+        ) : (
+            <div className="space-y-4">
+                <div className="flex items-center mb-4">
+                    <button onClick={() => setShowForgot(false)} className="mr-2 p-1 hover:bg-gray-100 rounded">
+                        <Icons.X size={20}/>
+                    </button>
+                    <h3 className="font-bold text-lg">Recuperar Senha</h3>
+                </div>
+                <p className="text-sm text-gray-600">Digite sua matrícula para receber instruções de recuperação.</p>
+                <input 
+                    type="text" 
+                    className="w-full p-3 border-2 border-gray-300 rounded bg-gray-50 outline-none focus:border-black"
+                    placeholder="Sua Matrícula"
+                    value={forgotMatricula}
+                    onChange={e => setForgotMatricula(e.target.value)}
+                />
+                <button onClick={handleForgotPassword} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded transition">
+                    ENVIAR INSTRUÇÕES
+                </button>
+            </div>
+        )}
         
-        {users.length === 0 && (
-          <button onClick={handleCreateAdmin} className="mt-4 w-full text-sm text-blue-600 underline">
+        {!showForgot && users.length === 0 && (
+          <button onClick={handleCreateAdmin} className="mt-6 w-full text-sm bg-gray-100 py-2 rounded text-gray-600 border border-gray-300 hover:bg-gray-200 font-bold">
             Cadastrar Administrador Inicial
           </button>
         )}
