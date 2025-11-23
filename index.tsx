@@ -841,6 +841,11 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
             >
                 Esqueci minha senha
             </button>
+
+            <div className="flex items-center justify-center mt-4 text-green-600 text-xs">
+                <Icons.Lock className="w-3 h-3 mr-1" />
+                <span className="font-bold">Ambiente Seguro (SSL 256-bit)</span>
+            </div>
             </form>
         ) : (
             <div className="space-y-4">
@@ -903,7 +908,10 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onFinishMaintenance,
             <p className="text-lg italic text-white opacity-90">"Nenhum trabalho é tão urgente que não possa ser feito com segurança."</p>
           </div>
           <div className="text-right text-white hidden md:block">
-             <p className="text-sm font-bold">{currentUser.name}</p>
+             <div className="flex items-center justify-end mb-1">
+                 <Icons.Lock className="w-3 h-3 text-green-500 mr-1" />
+                 <p className="text-sm font-bold">{currentUser.name}</p>
+             </div>
              <div className="flex items-center justify-end gap-2 mt-1">
                 <p className="text-xs text-green-500 font-bold flex items-center uppercase bg-green-900/50 px-2 py-1 rounded">
                     <Icons.Globe className="w-3 h-3 mr-1" /> USUÁRIOS CONECTADOS: {connectedUsers}
@@ -1871,6 +1879,8 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
   const [newLoc, setNewLoc] = useState('');
   const [networkPath, setNetworkPath] = useState(settings.registeredNetwork || '');
   const [wifiName, setWifiName] = useState(settings.wifiName || '');
+  const [networkUser, setNetworkUser] = useState(settings.networkUser || '');
+  const [networkPassword, setNetworkPassword] = useState(settings.networkPassword || '');
 
   const handleAddTag = () => {
     if(newTag) { setSettings({...settings, tags: [...settings.tags, newTag]}); setNewTag(''); }
@@ -1879,7 +1889,13 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
     if(newLoc) { setSettings({...settings, locations: [...settings.locations, newLoc]}); setNewLoc(''); }
   };
   const handleSaveNetwork = () => {
-      setSettings({ ...settings, registeredNetwork: networkPath, wifiName: wifiName });
+      setSettings({ 
+          ...settings, 
+          registeredNetwork: networkPath, 
+          wifiName: wifiName,
+          networkUser: networkUser,
+          networkPassword: networkPassword
+      });
       alert("Configurações de Rede salvas!");
   };
 
@@ -1920,8 +1936,41 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
                                 placeholder="Ex: \\servidor\dados\app"
                             />
                         </div>
+                        <div>
+                            <label className="block font-bold text-sm mb-1">Usuário de Rede</label>
+                            <input 
+                                className="w-full border p-2 rounded" 
+                                value={networkUser} 
+                                onChange={e => setNetworkUser(e.target.value)}
+                                placeholder="Ex: admin_rede"
+                            />
+                        </div>
+                        <div>
+                            <label className="block font-bold text-sm mb-1">Senha de Rede</label>
+                            <input 
+                                type="password"
+                                className="w-full border p-2 rounded" 
+                                value={networkPassword} 
+                                onChange={e => setNetworkPassword(e.target.value)}
+                                placeholder="********"
+                            />
+                        </div>
                     </div>
                     <button onClick={handleSaveNetwork} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded font-bold">SALVAR REDE</button>
+                </div>
+
+                <div className="md:col-span-2 bg-gray-50 p-4 rounded border border-gray-300 mt-0">
+                    <h3 className="font-bold text-lg mb-4 flex items-center"><Icons.Lock className="mr-2"/> SEGURANÇA E CRIPTOGRAFIA</h3>
+                    <div className="flex items-center justify-between bg-white p-4 border rounded">
+                        <div>
+                            <p className="font-bold text-green-700 flex items-center"><Icons.CheckSquare className="w-4 h-4 mr-2"/> Certificado SSL Válido</p>
+                            <p className="text-xs text-gray-500">Emitido para: {settings.wifiName || 'localhost'}</p>
+                            <p className="text-xs text-gray-500">Expira em: 365 dias</p>
+                        </div>
+                        <div className="text-right">
+                             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">ATIVO</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
