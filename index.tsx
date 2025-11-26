@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send, Sun } from 'lucide-react';
+import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send, Sun, MessageCircle } from 'lucide-react';
 
 // --- ICONS MAPPING ---
 const Icons = {
@@ -45,7 +46,8 @@ const Icons = {
   Clipboard: Clipboard,
   FileSpreadsheet: FileSpreadsheet,
   Whatsapp: Send,
-  Sun: Sun
+  Sun: Sun,
+  MessageCircle: MessageCircle
 };
 
 // --- CONSTANTS ---
@@ -145,4 +147,144 @@ const SignatureCanvas = ({ onSave, onCancel, employeeName, employeeRole, employe
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl">
+        <h3 className="text-xl font-bold mb-4">Assinatura Digital</h3>
+        <p className="mb-2 font-medium">Colaborador: {employeeName} ({employeeRole})</p>
+        <div className="border-2 border-dashed border-gray-400 mb-4 rounded bg-gray-50 touch-none">
+          <canvas
+            ref={canvasRef}
+            width={400}
+            height={200}
+            className="w-full h-48 cursor-crosshair"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
+        </div>
+        <div className="flex justify-end space-x-2">
+          <button 
+            onClick={() => {
+              const canvas = canvasRef.current;
+              const ctx = canvas.getContext('2d');
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }} 
+            className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+          >
+            Limpar
+          </button>
+          <button onClick={onCancel} className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-100 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={handleSave} className="px-4 py-2 bg-yellow-400 text-black font-semibold rounded hover:bg-yellow-500 transition-colors shadow-sm">
+            Salvar Assinatura
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MaintenanceProgramming = ({ data, onChange }) => {
+  const handleChange = (field, value) => {
+    onChange({ ...data, [field]: value });
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md border-t-4 border-yellow-500 overflow-hidden mb-6">
+      <div className="bg-gray-50 px-6 py-4 border-b flex items-center justify-between">
+        <h2 className="text-lg font-bold text-gray-800 flex items-center">
+          <Icons.Calendar className="w-5 h-5 mr-2 text-yellow-600" />
+          PROGRAMAÇÃO DE MANUTENÇÃO
+        </h2>
+        <span className="text-xs font-semibold px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+          OM/FROTA
+        </span>
+      </div>
+      
+      <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-4">
+        {/* Row 1 */}
+        <div className="md:col-span-4">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">OM / Frota</label>
+          <div className="relative">
+            <Icons.Truck className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input 
+              type="text" 
+              className="pl-9 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+              placeholder="Identificação..."
+              value={data.omFrota || ''}
+              onChange={(e) => handleChange('omFrota', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-3">
+           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridade</label>
+           <div className="relative">
+            <Icons.AlertTriangle className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <select 
+              className="pl-9 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 bg-white"
+              value={data.prioridade || ''}
+              onChange={(e) => handleChange('prioridade', e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+           </div>
+        </div>
+
+        <div className="md:col-span-3">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nº Pessoas</label>
+          <div className="relative">
+            <Icons.Users className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input 
+              type="number" 
+              className="pl-9 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+              placeholder="0"
+              value={data.numeroPessoas || ''}
+              onChange={(e) => handleChange('numeroPessoas', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">H (Horas)</label>
+          <div className="relative">
+            <Icons.Clock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input 
+              type="number" 
+              className="pl-9 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+              placeholder="0h"
+              value={data.horasEstimadas || ''}
+              onChange={(e) => handleChange('horasEstimadas', e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="md:col-span-12">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição da Atividade</label>
+          <div className="relative">
+            <Icons.FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <textarea 
+              rows={2}
+              className="pl-9 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+              placeholder="Descreva a atividade a ser realizada..."
+              value={data.descricaoAtividade || ''}
+              onChange={(e) => handleChange('descricaoAtividade', e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Row 3 - Dates */}
+        <div className="md:col-span-3">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Min</label>
+          <input 
+            type="date" 
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-yellow-500 focus:ring-1 focus:ring-yellow-
