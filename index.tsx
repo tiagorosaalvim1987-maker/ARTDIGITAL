@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send } from 'lucide-react';
+import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send, Phone, CloudLightning } from 'lucide-react';
 
 // --- ICONS MAPPING ---
 const Icons = {
@@ -30,6 +30,7 @@ const Icons = {
   Printer: Printer,
   Save: Save,
   Cloud: Cloud,
+  CloudLightning: CloudLightning,
   FileCheck: FileCheck,
   Wifi: Wifi,
   Server: Server,
@@ -44,7 +45,8 @@ const Icons = {
   Copy: Copy,
   Clipboard: Clipboard,
   FileSpreadsheet: FileSpreadsheet,
-  Whatsapp: Send // Using Send icon as generic send, commonly associated with messaging
+  Whatsapp: Send, // Using Send icon as generic send, commonly associated with messaging
+  Phone: Phone
 };
 
 // --- CONSTANTS ---
@@ -1140,15 +1142,17 @@ const ScreenProgramming = ({ schedule, setSchedule }) => {
 };
 
 const ProgrammingAlert = ({ schedule, onClose }) => {
-    // Filter for today's schedule
-    const today = new Date().toISOString().split('T')[0];
+    // Correctly get "Today" in local time YYYY-MM-DD format
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset*60*1000));
+    const todayISO = localNow.toISOString().split('T')[0];
+
     const todaysItems = schedule?.filter(item => {
         if (!item.startDate) return false;
-        // Check if item is active today (within range or starts today)
-        // User requested "Programação do dia", usually means items scheduled for today.
         const start = item.startDate;
         const end = item.endDate || item.startDate;
-        return today >= start && today <= end;
+        return todayISO >= start && todayISO <= end;
     }) || [];
 
     if (todaysItems.length === 0) return null;
@@ -1491,7 +1495,7 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
   );
 };
 
-const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, refreshData, networkName }) => {
+const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, refreshData, networkName, isOnline }) => {
   const activeList = activeMaintenances.filter(m => m.status !== 'finished');
   const finishedList = activeMaintenances.filter(m => m.status === 'finished');
 
@@ -1516,12 +1520,18 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, ref
                  <p className="text-sm font-bold">{currentUser.name}</p>
              </div>
              {networkName && (
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-2">
                     <span className="flex items-center text-xs bg-gray-800 px-2 py-1 rounded text-green-400 border border-green-900 animate-pulse">
-                         <Icons.Wifi className="w-3 h-3 mr-1" /> USUÁRIOS CONECTADOS: {Math.floor(Math.random() * 5) + 1}
+                         <Icons.Wifi className="w-3 h-3 mr-1" /> CONECTADO REDE LOCAL: {networkName}
                     </span>
                 </div>
              )}
+             <div className="flex items-center justify-end mt-1">
+                 <span className={`flex items-center text-xs px-2 py-1 rounded border font-bold ${isOnline ? 'bg-blue-900 text-blue-200 border-blue-700' : 'bg-red-900 text-red-200 border-red-700'}`}>
+                     <Icons.CloudLightning className="w-3 h-3 mr-1" /> 
+                     {isOnline ? 'NUVEM SINCRONIZADA' : 'OFFLINE - MODO LOCAL'}
+                 </span>
+             </div>
           </div>
       </div>
 
@@ -2674,7 +2684,7 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
   );
 };
 
-const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOnline }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Icons.Activity },
     { id: 'emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
@@ -2697,7 +2707,10 @@ const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin }) => {
         <h1 className="text-2xl font-bold tracking-tighter text-yellow-500 flex items-center">
           ART APP
         </h1>
-        <p className="text-xs text-gray-400 mt-1">Gestão de Segurança</p>
+        <div className="flex items-center mt-2 gap-2">
+            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+            <p className="text-xs text-gray-400 uppercase">{isOnline ? 'Conectado Nuvem' : 'Modo Offline'}</p>
+        </div>
       </div>
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map(item => (
@@ -2784,6 +2797,7 @@ const App = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [checklistPreFill, setChecklistPreFill] = useState(null);
   const [showProgrammingAlert, setShowProgrammingAlert] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   useEffect(() => { setLocalStorage('users', users); }, [users]);
   useEffect(() => { setLocalStorage('employees', employees); }, [employees]);
@@ -2791,6 +2805,18 @@ const App = () => {
   useEffect(() => { setLocalStorage('settings', settings); }, [settings]);
   useEffect(() => { setLocalStorage('activeMaintenances', activeMaintenances); }, [activeMaintenances]);
   useEffect(() => { setLocalStorage('schedule', schedule); }, [schedule]);
+
+  // Online Status Listener
+  useEffect(() => {
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+      };
+  }, []);
 
   // Alert Timer Logic
   useEffect(() => {
@@ -2974,7 +3000,7 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans flex">
-      <Sidebar activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} />
+      <Sidebar activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} isOnline={isOnline} />
       <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} />
       
       <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
@@ -2992,6 +3018,7 @@ const App = () => {
                     onOpenChecklist={handleOpenChecklist}
                     refreshData={refreshData}
                     networkName={settings.wifiName}
+                    isOnline={isOnline}
                 />
              )}
              {activeScreen === 'emergencial' && <ScreenArtEmergencial onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} />}
