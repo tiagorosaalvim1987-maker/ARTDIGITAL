@@ -105,7 +105,6 @@ const setLocalStorage = (key, value) => {
 
 // --- COMPONENTS ---
 
-// ... (SignatureCanvas, SignatureManager, RiskRadar, MaintenanceTimer, MaintenanceCard, PrintTemplate remain the same)
 const SignatureCanvas = ({ onSave, onCancel, employeeName, employeeRole, employeeId }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -708,8 +707,8 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                             <tbody>
                                 {sys.items.map((item, i) => {
                                     const key = `${sys.name}-${item}`;
-                                    const status = data.checks?.[key] || 'na';
-                                    const obs = data.obs?.[key];
+                                    const status = data.checks?.[idx + '-' + item] || data.checks?.[key] || 'na';
+                                    const obs = data.obs?.[idx + '-' + item] || data.obs?.[key];
                                     return (
                                         <tr key={i} className="text-[11px]">
                                             <td className="border-gray-300">{item}</td>
@@ -1145,6 +1144,8 @@ const ProgrammingAlert = ({ schedule, onClose }) => {
     const today = new Date().toISOString().split('T')[0];
     const todaysItems = schedule?.filter(item => {
         if (!item.startDate) return false;
+        // Check if item is active today (within range or starts today)
+        // User requested "Programação do dia", usually means items scheduled for today.
         const start = item.startDate;
         const end = item.endDate || item.startDate;
         return today >= start && today <= end;
@@ -1197,15 +1198,24 @@ const ProgrammingAlert = ({ schedule, onClose }) => {
 };
 
 // --- SCREENS ---
-// (ScreenLogin, ScreenDashboard, ScreenArtEmergencial, ScreenArtAtividade, ScreenChecklist, ScreenExternalArt, ScreenHistory, ScreenEmployeeRegister, ScreenAdminUsers, ScreenAdminSettings, ScreenFileDocuments remain same)
 
-// ... [Include all original Screen components here unchanged to save space, assuming they are present] ... 
 const ScreenLogin = ({ onLogin, users, setUsers }) => {
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotMatricula, setForgotMatricula] = useState('');
+
+  // Registration states
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regMatricula, setRegMatricula] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regRole, setRegRole] = useState('Técnico'); // Default role
   
+  // Fake Network Search state
+  const [searchingNetwork, setSearchingNetwork] = useState(false);
+  const [networkFound, setNetworkFound] = useState(false);
+
   const handleLogin = (e) => {
     e.preventDefault();
     const user = users.find(u => u.matricula === matricula && u.password === password);
@@ -1214,6 +1224,30 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
     } else {
         alert('Credenciais inválidas');
     }
+  };
+
+  const handleRegister = (e) => {
+    e.preventDefault();
+    if(!regName || !regMatricula || !regPassword) {
+        alert("Preencha todos os campos obrigatórios.");
+        return;
+    }
+    if(users.find(u => u.matricula === regMatricula)) {
+        alert("Usuário já cadastrado com esta matrícula.");
+        return;
+    }
+    const newUser = {
+        name: regName,
+        matricula: regMatricula,
+        password: regPassword,
+        role: regRole === 'Admin' ? 'admin' : 'user'
+    };
+    setUsers([...users, newUser]);
+    alert("Cadastro realizado com sucesso! Faça login.");
+    setIsRegistering(false);
+    // Auto-fill login
+    setMatricula(regMatricula);
+    setPassword('');
   };
 
   const handleCreateAdmin = () => {
@@ -1237,103 +1271,221 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
     }
   };
 
+  const handleSearchNetwork = () => {
+      setSearchingNetwork(true);
+      setTimeout(() => {
+          setSearchingNetwork(false);
+          setNetworkFound(true);
+      }, 2000);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900">
-      {/* BACKGROUND ELEMENTS */}
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-600 via-gray-900 to-black opacity-80 z-0"></div>
-      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-      <div className="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-black to-transparent z-0"></div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900 font-sans">
+      {/* BACKGROUND & OVERLAY */}
+      <div className="absolute inset-0 z-0">
+        <img 
+            src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2070&auto=format&fit=crop" 
+            alt="Industrial Background" 
+            className="w-full h-full object-cover opacity-30"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-gray-900/80 to-black/60"></div>
+      </div>
       
-      {/* INDUSTRIAL OVERLAY */}
-      <div className="absolute top-10 left-10 w-64 h-64 border-l-4 border-t-4 border-yellow-500 opacity-20 rounded-tl-3xl"></div>
-      <div className="absolute bottom-10 right-10 w-64 h-64 border-r-4 border-b-4 border-yellow-500 opacity-20 rounded-br-3xl"></div>
+      {/* DECORATIVE ELEMENTS */}
+      <div className="absolute top-0 left-0 w-full h-2 bg-yellow-500 z-20 shadow-[0_0_20px_rgba(234,179,8,0.6)]"></div>
+      <div className="absolute bottom-0 w-full h-2 bg-yellow-500 z-20"></div>
 
-      <div className="bg-black/80 backdrop-blur-md p-10 rounded-2xl shadow-2xl w-full max-w-md border border-yellow-500/30 relative z-10 animate-in fade-in zoom-in duration-500">
-        <div className="text-center mb-8">
-            <div className="inline-block p-4 rounded-full bg-white mb-4 shadow-lg">
-                <img src={VALE_LOGO_URL} alt="Vale" className="w-24" />
+      <div className="relative z-10 w-full max-w-lg p-8 mx-4">
+        {/* LOGO AREA */}
+        <div className="text-center mb-8 animate-in slide-in-from-top duration-700">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-yellow-500 mb-6 shadow-[0_0_30px_rgba(234,179,8,0.4)] border-4 border-black">
+                <Icons.AlertTriangle size={48} className="text-black" />
             </div>
-            <h1 className="text-5xl font-black text-white tracking-tighter mb-1 drop-shadow-lg">ART <span className="text-yellow-500">APP</span></h1>
-            <h2 className="text-gray-400 text-sm font-bold uppercase tracking-widest border-t border-gray-700 pt-2 mt-2">Análise Preliminar da Tarefa</h2>
+            <h1 className="text-6xl font-black text-white tracking-tighter mb-2 leading-none drop-shadow-2xl">
+                ART
+            </h1>
+            <div className="flex items-center justify-center gap-3">
+                 <div className="h-1 w-12 bg-yellow-500 rounded"></div>
+                 <h2 className="text-yellow-500 text-sm md:text-base font-bold uppercase tracking-[0.2em]">ANÁLISE PRELIMINAR DA TAREFA</h2>
+                 <div className="h-1 w-12 bg-yellow-500 rounded"></div>
+            </div>
         </div>
-        
-        {!showForgot ? (
-            <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1">
-                <label className="block text-xs font-bold text-yellow-500 uppercase ml-1">Matrícula</label>
-                <div className="relative">
-                    <Icons.User className="absolute left-3 top-3 text-gray-500" size={18} />
-                    <input 
-                    type="text" 
-                    className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg bg-gray-900/50 text-white focus:bg-gray-800 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-all placeholder-gray-600" 
-                    placeholder="Digite sua matrícula"
-                    value={matricula} 
-                    onChange={e => setMatricula(e.target.value)}
-                    />
-                </div>
-            </div>
-            <div className="space-y-1">
-                <label className="block text-xs font-bold text-yellow-500 uppercase ml-1">Senha</label>
-                <div className="relative">
-                    <Icons.Lock className="absolute left-3 top-3 text-gray-500" size={18} />
-                    <input 
-                    type="password" 
-                    className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg bg-gray-900/50 text-white focus:bg-gray-800 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-all placeholder-gray-600"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    />
-                </div>
-            </div>
-            <button type="submit" className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-4 rounded-lg hover:from-yellow-400 hover:to-yellow-500 transition-all transform hover:scale-[1.02] shadow-lg shadow-yellow-500/20 text-lg uppercase tracking-wide">
-                ENTRAR NO SISTEMA
-            </button>
-            
-            <button 
-                type="button" 
-                onClick={() => setShowForgot(true)}
-                className="block w-full text-center text-xs text-gray-500 hover:text-yellow-400 hover:underline mt-4 transition-colors"
-            >
-                Esqueci minha senha
-            </button>
 
-            <div className="flex items-center justify-center mt-6 text-green-500 text-[10px] uppercase font-bold tracking-wider bg-black/40 py-2 rounded">
-                <Icons.Lock className="w-3 h-3 mr-2" />
-                Ambiente Seguro (SSL 256-bit)
-            </div>
-            </form>
-        ) : (
-            <div className="space-y-5 animate-in slide-in-from-right duration-300">
-                <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-xl text-white">Recuperar Acesso</h3>
-                    <button onClick={() => setShowForgot(false)} className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors">
-                        <Icons.X size={20}/>
+        {/* CARD */}
+        <div className="bg-black/60 backdrop-blur-xl border border-gray-700 p-8 rounded-2xl shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+            {!showForgot && !isRegistering && (
+                <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in duration-500">
+                    <div>
+                        <h3 className="text-2xl font-bold text-white mb-1">Bem-vindo</h3>
+                        <p className="text-gray-400 text-sm">Faça login para acessar o sistema de segurança.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="group/input">
+                            <label className="block text-xs font-bold text-yellow-500 uppercase mb-1 ml-1 group-focus-within/input:text-yellow-400 transition-colors">Matrícula</label>
+                            <div className="relative">
+                                <Icons.User className="absolute left-4 top-3.5 text-gray-500 group-focus-within/input:text-yellow-500 transition-colors" size={20} />
+                                <input 
+                                    type="text" 
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:bg-gray-800 transition-all font-bold" 
+                                    placeholder="Digite sua matrícula"
+                                    value={matricula} 
+                                    onChange={e => setMatricula(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="group/input">
+                            <label className="block text-xs font-bold text-yellow-500 uppercase mb-1 ml-1 group-focus-within/input:text-yellow-400 transition-colors">Senha</label>
+                            <div className="relative">
+                                <Icons.Lock className="absolute left-4 top-3.5 text-gray-500 group-focus-within/input:text-yellow-500 transition-colors" size={20} />
+                                <input 
+                                    type="password" 
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:bg-gray-800 transition-all font-bold"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all transform hover:-translate-y-1 text-lg uppercase tracking-wider flex items-center justify-center gap-2">
+                        ENTRAR <Icons.ArrowRightLeft size={20} className="hidden" />
+                    </button>
+                    
+                    <div className="flex justify-between items-center text-xs mt-4">
+                        <button type="button" onClick={() => setShowForgot(true)} className="text-gray-400 hover:text-white hover:underline transition-colors">
+                            Esqueci a senha
+                        </button>
+                        <button type="button" onClick={() => setIsRegistering(true)} className="text-yellow-500 hover:text-yellow-300 font-bold hover:underline transition-colors uppercase">
+                            CRIAR CONTA
+                        </button>
+                    </div>
+
+                    {/* FAKE NETWORK SEARCH */}
+                    <div className="border-t border-gray-700 pt-4 mt-2">
+                        {!networkFound ? (
+                            <button type="button" onClick={handleSearchNetwork} className="w-full flex items-center justify-center text-xs text-gray-500 hover:text-white transition-colors gap-2">
+                                <Icons.Wifi size={14} className={searchingNetwork ? 'animate-ping' : ''}/>
+                                {searchingNetwork ? 'BUSCANDO REDE LOCAL...' : 'BUSCAR REDE LOCAL'}
+                            </button>
+                        ) : (
+                            <div className="w-full flex items-center justify-center text-xs text-green-500 font-bold gap-2 animate-pulse">
+                                <Icons.Wifi size={14} /> REDE LOCAL CONECTADA
+                            </div>
+                        )}
+                    </div>
+
+                </form>
+            )}
+
+            {isRegistering && (
+                <form onSubmit={handleRegister} className="space-y-4 animate-in slide-in-from-right duration-500">
+                     <div className="flex items-center justify-between mb-2">
+                        <div>
+                            <h3 className="text-2xl font-bold text-white mb-1">Nova Conta</h3>
+                            <p className="text-gray-400 text-sm">Preencha seus dados para acesso.</p>
+                        </div>
+                        <button type="button" onClick={() => setIsRegistering(false)} className="bg-gray-800 p-2 rounded-full hover:bg-gray-700 text-gray-300 hover:text-white transition-colors">
+                            <Icons.ArrowRightLeft size={20} className="rotate-180" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-3">
+                         <div>
+                            <label className="text-xs font-bold text-gray-400 ml-1">Nome Completo</label>
+                            <input 
+                                type="text" 
+                                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-yellow-500 outline-none" 
+                                placeholder="Seu nome"
+                                value={regName}
+                                onChange={e => setRegName(e.target.value)}
+                            />
+                         </div>
+                         <div className="grid grid-cols-2 gap-3">
+                             <div>
+                                <label className="text-xs font-bold text-gray-400 ml-1">Matrícula</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-yellow-500 outline-none" 
+                                    placeholder="ID"
+                                    value={regMatricula}
+                                    onChange={e => setRegMatricula(e.target.value)}
+                                />
+                             </div>
+                             <div>
+                                <label className="text-xs font-bold text-gray-400 ml-1">Função</label>
+                                <select 
+                                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-yellow-500 outline-none appearance-none"
+                                    value={regRole}
+                                    onChange={e => setRegRole(e.target.value)}
+                                >
+                                    <option>Técnico</option>
+                                    <option>Engenheiro</option>
+                                    <option>Gestor</option>
+                                    <option>Admin</option>
+                                </select>
+                             </div>
+                         </div>
+                         <div>
+                            <label className="text-xs font-bold text-gray-400 ml-1">Senha</label>
+                            <input 
+                                type="password" 
+                                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:border-yellow-500 outline-none" 
+                                placeholder="Crie uma senha"
+                                value={regPassword}
+                                onChange={e => setRegPassword(e.target.value)}
+                            />
+                         </div>
+                    </div>
+
+                    <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-lg shadow-lg mt-4 text-lg uppercase tracking-wider transition-all hover:scale-[1.02]">
+                        CADASTRAR E ENTRAR
+                    </button>
+                </form>
+            )}
+
+            {showForgot && (
+                <div className="space-y-5 animate-in slide-in-from-right duration-300">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-xl text-white">Recuperar Acesso</h3>
+                        <button onClick={() => setShowForgot(false)} className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors">
+                            <Icons.X size={20}/>
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-400 leading-relaxed">Digite sua matrícula abaixo. Enviaremos as instruções de recuperação para o e-mail corporativo cadastrado.</p>
+                    
+                    <div className="relative">
+                        <Icons.User className="absolute left-4 top-3.5 text-gray-500" size={20} />
+                        <input 
+                            type="text" 
+                            className="w-full pl-12 pr-4 py-3 border border-gray-700 rounded-lg bg-gray-800/50 text-white focus:border-yellow-500 outline-none placeholder-gray-600"
+                            placeholder="Sua Matrícula"
+                            value={forgotMatricula}
+                            onChange={e => setForgotMatricula(e.target.value)}
+                        />
+                    </div>
+                    
+                    <button onClick={handleForgotPassword} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition-colors border border-gray-600 hover:border-gray-500">
+                        ENVIAR INSTRUÇÕES
                     </button>
                 </div>
-                <p className="text-sm text-gray-400 leading-relaxed">Digite sua matrícula abaixo. Enviaremos as instruções de recuperação para o e-mail corporativo cadastrado.</p>
-                
-                <div className="relative">
-                    <Icons.User className="absolute left-3 top-3 text-gray-500" size={18} />
-                    <input 
-                        type="text" 
-                        className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg bg-gray-900/50 text-white focus:border-yellow-500 outline-none placeholder-gray-600"
-                        placeholder="Sua Matrícula"
-                        value={forgotMatricula}
-                        onChange={e => setForgotMatricula(e.target.value)}
-                    />
-                </div>
-                
-                <button onClick={handleForgotPassword} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition-colors border border-gray-600 hover:border-gray-500">
-                    ENVIAR INSTRUÇÕES
-                </button>
-            </div>
-        )}
-        
-        {!showForgot && users.length === 0 && (
-          <button onClick={handleCreateAdmin} className="mt-8 w-full text-xs bg-gray-900/50 py-2 rounded text-gray-500 border border-gray-800 hover:bg-gray-800 hover:text-white font-bold transition-colors">
-            Cadastrar Administrador Inicial (Debug)
-          </button>
-        )}
+            )}
+            
+            {!showForgot && !isRegistering && users.length === 0 && (
+              <button onClick={handleCreateAdmin} className="mt-6 w-full text-xs text-gray-500 hover:text-white font-bold transition-colors opacity-50 hover:opacity-100">
+                [DEBUG] Criar Admin Inicial
+              </button>
+            )}
+        </div>
+      </div>
+      
+      {/* FOOTER */}
+      <div className="absolute bottom-4 text-center w-full z-10 text-[10px] text-gray-500 font-mono">
+        © 2024 ART SYSTEM v3.5 | SEGURANÇA E CONFIABILIDADE
       </div>
     </div>
   );
@@ -2652,8 +2804,8 @@ const App = () => {
         // Auto hide after duration
         setTimeout(() => {
             setShowProgrammingAlert(false);
-        }, PROGRAMMING_ALERT_DURATION);
-    }, PROGRAMMING_ALERT_INTERVAL);
+        }, 20000); // 20 seconds
+    }, 120000); // 2 minutes (120000 ms)
 
     return () => clearInterval(interval);
   }, [currentUser]);
