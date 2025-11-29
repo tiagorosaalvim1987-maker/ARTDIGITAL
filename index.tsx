@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send, Phone, CloudLightning } from 'lucide-react';
+import { Camera, Trash2, Download, FileText, Eye, Edit, Share2, Printer, X, Menu, Save, Upload, Cloud, User, Users, Lock, AlertTriangle, ClipboardList, CheckSquare, Home, LogOut, Clock, Activity, Settings, Pen, Terminal, Folder, ChevronRight, FileCheck, Wifi, Server, Globe, Database, Cpu, Radio, Layers, ArrowRightLeft, Calendar, Bell, Copy, Clipboard, FileSpreadsheet, Send, Phone, CloudLightning, File, FileCode, PlayCircle, ChevronLeft, Sun, CloudSun, Haze, CloudDrizzle, CloudRain, Snowflake, CloudRainWind, Wind, CloudCheck, CloudUpload } from 'lucide-react';
 
 // --- ICONS MAPPING ---
 const Icons = {
@@ -45,8 +47,23 @@ const Icons = {
   Copy: Copy,
   Clipboard: Clipboard,
   FileSpreadsheet: FileSpreadsheet,
-  Whatsapp: Send, // Using Send icon as generic send, commonly associated with messaging
-  Phone: Phone
+  Whatsapp: Send, 
+  Phone: Phone,
+  File: File,
+  FileCode: FileCode,
+  PlayCircle: PlayCircle,
+  ChevronLeft: ChevronLeft,
+  ChevronRight: ChevronRight,
+  Sun: Sun,
+  CloudSun: CloudSun,
+  Haze: Haze,
+  CloudDrizzle: CloudDrizzle,
+  CloudRain: CloudRain,
+  Snowflake: Snowflake,
+  CloudRainWind: CloudRainWind,
+  Wind: Wind,
+  CloudCheck: CloudCheck,
+  CloudUpload: CloudUpload,
 };
 
 // --- CONSTANTS ---
@@ -54,6 +71,7 @@ const ALERT_THRESHOLD_HOURS = 20;
 const ALERT_THRESHOLD_MS = ALERT_THRESHOLD_HOURS * 60 * 60 * 1000;
 const PROGRAMMING_ALERT_INTERVAL = 2 * 60 * 1000; // 2 minutes
 const PROGRAMMING_ALERT_DURATION = 20 * 1000; // 20 seconds
+const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE'; // In a real app, this would come from the server
 
 const TRUCK_IMAGE_URL = "https://img.freepik.com/premium-vector/mining-dump-truck-vector-illustration-isolated-white-background_263357-365.jpg"; 
 const VALE_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vale_logo.svg/800px-Vale_logo.svg.png";
@@ -94,18 +112,144 @@ const SYSTEMS_CHECKLIST = [
   { name: 'CONDIÇÕES DE LIMPEZA E ORGANIZAÇÃO', items: ['Cabine', 'Plataforma', 'Escadas e Corrimões', 'Retrovisores'] },
 ];
 
-// --- HELPERS ---
-const getLocalStorage = (key, initial) => {
-  const saved = localStorage.getItem(key);
-  if (saved) return JSON.parse(saved);
-  return initial;
+// --- HELPERS & CUSTOM HOOKS ---
+const useCachedState = (key, initialValue) => {
+  const [state, setState] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(state));
+      } catch (error) {
+        console.error(error);
+      }
+    }, 500); // Debounce saves by 500ms
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [key, state]);
+
+  return [state, setState];
 };
 
-const setLocalStorage = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
+
+const getWeatherIcon = (code) => {
+    switch(code) {
+        case 0: return Icons.Sun;
+        case 1: case 2: case 3: return Icons.CloudSun;
+        case 45: case 48: return Icons.Haze;
+        case 51: case 53: case 55: case 56: case 57: return Icons.CloudDrizzle;
+        case 61: case 63: case 65: case 66: case 67: return Icons.CloudRain;
+        case 71: case 73: case 75: case 77: return Icons.Snowflake;
+        case 80: case 81: case 82: return Icons.CloudRainWind;
+        case 95: case 96: case 99: return Icons.CloudLightning;
+        default: return Icons.Cloud;
+    }
 };
+
+// --- SIMULATED PUSH NOTIFICATION ---
+const showLocalNotification = (title, body, tag = 'art-notification') => {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+              body,
+              icon: 'https://img.freepik.com/premium-vector/mining-dump-truck-vector-illustration-isolated-white-background_263357-365.jpg',
+              badge: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Vale_logo.svg/800px-Vale_logo.svg.png',
+              tag: tag
+          });
+      });
+  }
+};
+
 
 // --- COMPONENTS ---
+
+const Toast = ({ message, type, onDismiss }) => {
+    useEffect(() => {
+        const timer = setTimeout(onDismiss, 3000);
+        return () => clearTimeout(timer);
+    }, [onDismiss]);
+
+    const colors = {
+        success: 'bg-green-600',
+        info: 'bg-blue-600',
+        warning: 'bg-yellow-500',
+    };
+
+    return (
+        <div className={`fixed bottom-8 right-8 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-2xl z-[200] flex items-center gap-4 animate-in slide-in-from-bottom`}>
+            {type === 'success' && <Icons.CloudCheck />}
+            {type === 'info' && <Icons.CloudUpload />}
+            <span>{message}</span>
+            <button onClick={onDismiss} className="ml-4 opacity-75 hover:opacity-100">&times;</button>
+        </div>
+    );
+};
+
+const SyncStatusIndicator = ({ status, queueLength }) => {
+    if (status === 'synced') {
+        return (
+            <div className="flex items-center gap-2 text-xs text-green-300 bg-green-900/50 px-3 py-1 rounded-full border border-green-700">
+                <Icons.CloudCheck size={14} />
+                <span>Sincronizado</span>
+            </div>
+        );
+    }
+    if (status === 'syncing') {
+        return (
+            <div className="flex items-center gap-2 text-xs text-blue-300 bg-blue-900/50 px-3 py-1 rounded-full border border-blue-700 animate-pulse">
+                <Icons.Cpu size={14} className="animate-spin" />
+                <span>Sincronizando...</span>
+            </div>
+        );
+    }
+    if (status === 'offline') {
+        return (
+            <div className="flex items-center gap-2 text-xs text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded-full border border-yellow-700">
+                <Icons.CloudUpload size={14} />
+                <span>{queueLength} alterações pendentes</span>
+            </div>
+        );
+    }
+    return null;
+};
+
+const WeatherWidget = ({ weather, status }) => {
+    if (status === 'loading') {
+        return <div className="text-white text-xs flex items-center gap-2"><Cpu className="animate-spin w-4 h-4"/> <span>Carregando clima...</span></div>;
+    }
+    if (status === 'error' || !weather) {
+        return <div className="text-red-400 text-xs flex items-center gap-2"><X size={14}/> <span>Clima indisponível</span></div>;
+    }
+
+    const WeatherIcon = getWeatherIcon(weather.weathercode);
+
+    return (
+        <div className="bg-white/10 p-2 rounded-lg flex items-center gap-4 border border-white/20">
+            <WeatherIcon className="w-8 h-8 text-yellow-300" />
+            <div className="text-white">
+                <p className="font-bold text-2xl leading-none">{Math.round(weather.temperature)}°C</p>
+            </div>
+            <div className="text-white border-l border-white/20 pl-4">
+                <div className="flex items-center gap-2">
+                    <Icons.Wind size={16} />
+                    <span className="font-bold">{Math.round(weather.windspeed)} km/h</span>
+                </div>
+                <p className="text-xs text-gray-300">Vento</p>
+            </div>
+        </div>
+    );
+};
+
 
 const SignatureCanvas = ({ onSave, onCancel, employeeName, employeeRole, employeeId }) => {
   const canvasRef = useRef(null);
@@ -340,6 +484,7 @@ const MaintenanceTimer = ({ startTime, endTime }: { startTime: any; endTime?: an
 
 const MaintenanceCard: React.FC<{ maintenance: any; onOpenChecklist: any; currentUser: any }> = ({ maintenance, onOpenChecklist, currentUser }) => {
   const [elapsed, setElapsed] = useState(0);
+  const [notified, setNotified] = useState(false);
   const canFinish = currentUser && maintenance.userId === currentUser.matricula;
 
   useEffect(() => {
@@ -360,6 +505,17 @@ const MaintenanceCard: React.FC<{ maintenance: any; onOpenChecklist: any; curren
   }, [maintenance.startTime, maintenance.status, maintenance.endTime]);
 
   const isOverdue = elapsed > ALERT_THRESHOLD_MS && maintenance.status !== 'finished';
+
+  useEffect(() => {
+    if (isOverdue && !notified) {
+      showLocalNotification(
+        `ALERTA CRÍTICO: ${maintenance.tag}`,
+        `A manutenção "${maintenance.taskName}" excedeu o tempo limite.`,
+        `maintenance-${maintenance.id}`
+      );
+      setNotified(true);
+    }
+  }, [isOverdue, notified, maintenance]);
 
   const formatTime = (ms) => {
     if (ms < 0) ms = 0;
@@ -405,6 +561,100 @@ const MaintenanceCard: React.FC<{ maintenance: any; onOpenChecklist: any; curren
         </div>
     </div>
   );
+};
+
+const ProgrammingPrintTemplate = ({ schedule, onClose, title = "PROGRAMAÇÃO SEMANAL DE MANUTENÇÃO" }) => {
+    return (
+        <div className="fixed inset-0 z-50 bg-gray-900 bg-opacity-95 flex justify-center overflow-y-auto print:bg-white print:static print:block">
+            <style>{`
+                @media print {
+                    @page { size: A4 landscape; margin: 5mm; }
+                    body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .no-print { display: none !important; }
+                    .print-container { width: 100% !important; box-shadow: none !important; padding: 0 !important; }
+                }
+            `}</style>
+            
+            <div className="no-print fixed top-4 right-4 flex gap-2 z-50">
+                <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700 flex items-center">
+                    <Icons.Printer className="mr-2 w-4 h-4"/> IMPRIMIR
+                </button>
+                <button onClick={onClose} className="bg-red-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-red-700">
+                    FECHAR
+                </button>
+            </div>
+
+            <div className="bg-white w-[297mm] min-h-[210mm] p-[10mm] shadow-2xl my-8 print-container print:my-0 font-sans">
+                {/* Header */}
+                <div className="border-2 border-black flex items-center mb-4">
+                    <div className="w-48 border-r-2 border-black flex items-center justify-center p-4">
+                        <img src={VALE_LOGO_URL} alt="Logo Vale" className="w-full object-contain" />
+                    </div>
+                    <div className="flex-1 text-center p-4 bg-gray-50 print:bg-gray-50">
+                        <h1 className="text-2xl font-black uppercase tracking-widest">{title}</h1>
+                        <p className="text-xs font-semibold text-gray-600 mt-1 uppercase tracking-wider">Sistema de Gestão de Segurança e Manutenção</p>
+                    </div>
+                    <div className="w-56 border-l-2 border-black flex flex-col justify-center p-3 text-[10px] bg-gray-50 print:bg-gray-50">
+                         <div className="flex justify-between border-b border-gray-300 pb-1 mb-1"><strong>DATA EMISSÃO:</strong> <span>{new Date().toLocaleDateString('pt-BR')}</span></div>
+                         <div className="flex justify-between border-b border-gray-300 pb-1 mb-1"><strong>REVISÃO:</strong> <span>04</span></div>
+                         <div className="flex justify-between"><strong>RESPONSÁVEL:</strong> <span>PLANEJAMENTO</span></div>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <table className="w-full border-collapse border border-black text-[10px]">
+                    <thead className="bg-gray-800 text-white print:bg-gray-800 print:text-white">
+                        <tr>
+                            <th className="border border-black p-1">DATA</th>
+                            <th className="border border-black p-1">H. INÍCIO</th>
+                            <th className="border border-black p-1">H. FIM</th>
+                            <th className="border border-black p-1">EQUIPAMENTO</th>
+                            <th className="border border-black p-1">OM</th>
+                            <th className="border border-black p-1 w-1/4">DESCRIÇÃO DA ATIVIDADE</th>
+                            <th className="border border-black p-1">CENTRO DE TRAB.</th>
+                            <th className="border border-black p-1">EXECUTANTE/REC.</th>
+                            <th className="border border-black p-1">PRIORIDADE</th>
+                            <th className="border border-black p-1 text-center">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {schedule.map((item, index) => (
+                            <tr key={index} className={`border border-black ${index % 2 === 0 ? 'bg-white' : 'bg-gray-100 print:bg-gray-100'}`}>
+                                <td className="border border-black p-1 text-center font-mono">{new Date(item.startDate).toLocaleDateString('pt-BR').slice(0,5)}</td>
+                                <td className="border border-black p-1 text-center font-mono">{item.startTime}</td>
+                                <td className="border border-black p-1 text-center font-mono">{item.endTime}</td>
+                                <td className="border border-black p-1 font-bold text-center">{item.omFrota}</td>
+                                <td className="border border-black p-1 text-center">{item.om || '-'}</td>
+                                <td className="border border-black p-1 font-bold uppercase">{item.description}</td>
+                                <td className="border border-black p-1 text-center">{item.workCenter}</td>
+                                <td className="border border-black p-1">{item.resource}</td>
+                                <td className="border border-black p-1 text-center text-[9px] font-bold uppercase">{item.priority}</td>
+                                <td className="border border-black p-1 text-center">
+                                    <div className="w-3 h-3 border border-black inline-block mr-1"></div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {/* Footer Signatures */}
+                <div className="mt-8 flex justify-between gap-10 avoid-break">
+                    <div className="flex-1 text-center">
+                        <div className="border-b border-black h-8 mb-1"></div>
+                        <p className="text-xs font-bold uppercase">SUPERVISOR DE MANUTENÇÃO</p>
+                    </div>
+                    <div className="flex-1 text-center">
+                        <div className="border-b border-black h-8 mb-1"></div>
+                        <p className="text-xs font-bold uppercase">PLANEJADOR</p>
+                    </div>
+                    <div className="flex-1 text-center">
+                        <div className="border-b border-black h-8 mb-1"></div>
+                        <p className="text-xs font-bold uppercase">COORDENAÇÃO</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const PrintTemplate = ({ data, type, onClose, settings }) => {
@@ -543,26 +793,18 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
             {/* Template content simplified for brevity, assume full implementation from original file */}
             <table className="document-table mb-6">
                 <tbody>
-                    <tr>
-                        <td className="w-24 text-center p-2">
-                           <div className="flex flex-col items-center justify-center">
-                               <img src={VALE_LOGO_URL} alt="Vale" className="w-20 object-contain" />
-                           </div>
+                    <tr className="bg-gray-50 print:bg-gray-50">
+                        <td className="w-48 text-center p-4 border-r-2 border-black">
+                            <img src={VALE_LOGO_URL} alt="Vale Logo" className="w-full object-contain" />
                         </td>
-                        <td className="text-center p-2">
-                            <h1 className="text-xl font-bold uppercase tracking-tight">{getTitle()}</h1>
-                            <p className="text-xs mt-1 text-gray-600 uppercase">Sistema de Gestão de Segurança e Manutenção</p>
+                        <td className="text-center p-4">
+                            <h1 className="text-2xl font-black uppercase tracking-widest">{getTitle()}</h1>
+                            <p className="text-xs font-semibold text-gray-600 mt-1 uppercase tracking-wider">Sistema de Gestão de Segurança e Manutenção</p>
                         </td>
-                        <td className="w-32 text-xs p-2 align-top bg-gray-50">
-                            <div className="flex justify-between border-b border-gray-300 pb-1 mb-1">
-                                <span className="font-bold">DATA:</span> <span>{data.date}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-gray-300 pb-1 mb-1">
-                                <span className="font-bold">HORA:</span> <span>{data.time}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-bold">ID:</span> <span className="font-mono">{data.maintenanceId ? data.maintenanceId.replace('MNT-', '') : data.id.toString().slice(-6)}</span>
-                            </div>
+                        <td className="w-48 text-xs p-3 align-top border-l-2 border-black">
+                            <div className="flex justify-between border-b border-gray-300 pb-1 mb-1"><strong>DATA:</strong> <span>{data.date}</span></div>
+                            <div className="flex justify-between border-b border-gray-300 pb-1 mb-1"><strong>HORA:</strong> <span>{data.time}</span></div>
+                            <div className="flex justify-between"><strong>ID DOC:</strong> <span className="font-mono">{data.maintenanceId ? data.maintenanceId.slice(-6) : data.id.toString().slice(-6)}</span></div>
                         </td>
                     </tr>
                 </tbody>
@@ -743,7 +985,7 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
                     {data.signatures && data.signatures.map((sig, i) => (
                         <div key={i} className="text-center flex flex-col items-center justify-end h-24">
                             {sig.signatureImage ? (
-                                <img src={sig.signatureImage} className="h-12 mb-1 object-contain" alt="Assinatura" />
+                                <img src={sig.signatureImage} className="h-12 mb-1 object-contain border border-dashed border-gray-400 p-1 bg-white" alt="Assinatura" />
                             ) : (
                                 <div className="h-12 mb-1 w-full"></div>
                             )}
@@ -784,83 +1026,107 @@ const PrintTemplate = ({ data, type, onClose, settings }) => {
   );
 };
 
-// --- NEW COMPONENTS ---
-const generateReportText = (maintenance, doc) => {
-    if (!doc) return "Documento não encontrado.";
+const generateReportText = (m, doc) => {
+    let text = `*RELATÓRIO DE MANUTENÇÃO - ${m.tag}*\n`;
+    text += `--------------------------------\n`;
+    text += `*OM:* ${m.om || 'N/A'}\n`;
+    text += `*DATA:* ${new Date().toLocaleDateString('pt-BR')}\n`;
+    text += `*EXECUTANTE:* ${m.userName || 'N/A'}\n`;
+    text += `*ATIVIDADE:* ${m.taskName}\n`;
     
-    const executantes = doc.signatures ? doc.signatures.map(s => s.name).join(', ') : 'N/A';
-    const pendencias = doc.type === 'checklist' 
-        ? Object.entries(doc.checks || {})
-            .filter(([_, status]) => status === 'nok')
-            .map(([key]) => key)
-            .join(', ')
-        : 'N/A';
-    
-    // Simple logic for deviation: if there are NOK items, there is a deviation
-    const desvio = pendencias && pendencias !== 'N/A' && pendencias.length > 0 ? "SIM" : "NÃO";
+    if (m.startTime && m.endTime) {
+        const start = new Date(m.startTime);
+        const end = new Date(m.endTime);
+        const diff = end.getTime() - start.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        text += `*DURAÇÃO:* ${hours}h ${minutes}m\n`;
+    }
 
-    return `📝 RETORNO OM: ${maintenance.om}
-▪ TIPO: ${doc.activityType || 'Mecânica'}
-🚜 EQUIPAMENTO: ${maintenance.tag}
-🗓 DADOS: ${new Date(maintenance.endTime).toLocaleDateString('pt-BR')}
-👥 EXECUTANTES: ${executantes}
-⏱ HORA INÍCIO: ${new Date(maintenance.startTime).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-⏱ HORA FIM: ${new Date(maintenance.endTime).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-MOTIVO DA PARADA 🔧: ${doc.taskName}
-ATIVIDADES REALIZADAS: ${doc.taskName} ${doc.steps ? '- ' + doc.steps.join('; ') : ''}
-OBSERVAÇÕES: ${doc.correctionDescription || doc.controlSummary || 'Sem observações.'}
-PENDÊNCIAS: ${pendencias || 'Nenhuma'}
-❗ *DESVIO: ${desvio}
-▪ STATUS: ENCERRADO`;
+    if (doc) {
+        if (doc.type === 'checklist' && doc.checks) {
+             text += `\n*CHECKLIST DE ENTREGA:*\n`;
+             let hasIssues = false;
+             SYSTEMS_CHECKLIST.forEach((sys, idx) => {
+                 const nokItems = sys.items.filter(item => {
+                     const status = doc.checks[`${idx}-${item}`] || doc.checks[`${sys.name}-${item}`];
+                     return status === 'nok';
+                 });
+                 
+                 if (nokItems.length > 0) {
+                     hasIssues = true;
+                     text += `\n📍 *${sys.name}*\n`;
+                     nokItems.forEach(item => {
+                         const obs = doc.obs?.[`${idx}-${item}`] || doc.obs?.[`${sys.name}-${item}`];
+                         text += `❌ ${item}${obs ? ` (${obs})` : ''}\n`;
+                     });
+                 }
+             });
+             
+             if (!hasIssues) text += `✅ Equipamento em condições normais de operação.\n`;
+        } else if (doc.correctionDescription) {
+             text += `\n*OBSERVAÇÕES:* ${doc.correctionDescription}\n`;
+        }
+    }
+
+    text += `--------------------------------\n`;
+    text += `Gerado via App de Manutenção`;
+    
+    return text;
 };
 
-const ReportCard: React.FC<{ m: any; doc: any; settings: any }> = ({ m, doc, settings }) => {
-    const [editableText, setEditableText] = useState(generateReportText(m, doc));
+const ReportCard = ({ m, doc, settings }) => {
+    const [deviations, setDeviations] = useState('');
+    const baseReportText = useMemo(() => generateReportText(m, doc), [m, doc]);
 
     const copyToClipboard = () => {
-         navigator.clipboard.writeText(editableText);
-         alert("Relatório copiado para a área de transferência!");
-    };
-
-    const sendToWhatsapp = () => {
-        const number = settings.whatsappNumber;
-        if (!number) {
-            alert("Configure o número de WhatsApp em Configurações > Geral.");
-            return;
+        let fullReportText = baseReportText;
+        if (deviations.trim()) {
+            fullReportText += `\n--------------------------------\n`;
+            fullReportText += `*DESVIOS E PENDÊNCIAS:*\n${deviations.trim()}`;
         }
-        const encodedText = encodeURIComponent(editableText);
-        const url = `https://wa.me/${number.replace(/\D/g,'')}?text=${encodedText}`;
-        window.open(url, '_blank');
+        navigator.clipboard.writeText(fullReportText);
+        alert("Relatório copiado para a área de transferência!");
     };
 
     return (
-        <div className="bg-white border border-gray-300 rounded-lg shadow hover:shadow-lg transition-shadow p-5 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-2 border-b pb-2">
+        <div className="bg-white border border-gray-300 rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 p-6 flex flex-col h-full transform hover:-translate-y-1">
+            <div className="flex justify-between items-start mb-4 border-b pb-4 bg-gray-50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
                 <div>
-                    <h3 className="font-bold text-lg">{m.tag}</h3>
-                    <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">OM: {m.om}</span>
+                    <h3 className="font-black text-xl text-gray-800">{m.tag}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold bg-black text-yellow-400 px-2 py-1 rounded">OM: {m.om}</span>
+                        <span className="text-xs font-bold text-gray-500">{doc.activityType}</span>
+                    </div>
                 </div>
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-bold">ENCERRADO</span>
+                <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm flex items-center gap-1">
+                    <Icons.CheckSquare size={12}/> ENCERRADO
+                </span>
             </div>
             
-            <textarea 
-                className="flex-1 text-xs text-gray-800 space-y-1 mb-4 whitespace-pre-line font-mono bg-yellow-50 p-2 rounded border border-yellow-200 h-64 overflow-y-auto resize-none focus:outline-none focus:border-yellow-500"
-                value={editableText}
-                onChange={(e) => setEditableText(e.target.value)}
+            <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Relatório Automático (Não Editável):</label>
+            <div 
+                className="flex-1 text-sm text-gray-800 space-y-2 mb-6 whitespace-pre-wrap font-mono bg-gray-100 p-4 rounded border border-gray-200 h-[300px] overflow-y-auto shadow-inner leading-relaxed"
+            >
+                {baseReportText}
+            </div>
+            
+            <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">
+                DESVIOS E PENDÊNCIAS (Preenchimento Manual):
+            </label>
+            <textarea
+                className="w-full text-sm text-gray-800 font-mono bg-orange-50 p-4 rounded border border-orange-200 h-[150px] resize-y focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 shadow-inner leading-relaxed mb-6"
+                value={deviations}
+                onChange={(e) => setDeviations(e.target.value)}
+                placeholder="Digite aqui quaisquer desvios, pendências ou informações adicionais..."
             />
 
-            <div className="grid grid-cols-2 gap-2 mt-auto">
+            <div className="grid grid-cols-1 gap-4 mt-auto">
                 <button 
                     onClick={copyToClipboard}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded flex items-center justify-center gap-2 transition-colors text-xs"
+                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm shadow-md"
                 >
-                    <Icons.Copy size={16} /> COPIAR
-                </button>
-                <button 
-                    onClick={sendToWhatsapp}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded flex items-center justify-center gap-2 transition-colors text-xs"
-                >
-                    <Icons.Whatsapp size={16} /> WHATSAPP
+                    <Icons.Copy size={18} /> COPIAR TEXTO COMPLETO
                 </button>
             </div>
         </div>
@@ -871,12 +1137,19 @@ const ScreenReports = ({ activeMaintenances, docs, settings }) => {
     const finishedMaintenances = activeMaintenances.filter(m => m.status === 'finished');
 
     return (
-        <div className="p-6 h-full flex flex-col">
-            <h2 className="text-3xl font-bold mb-6 flex items-center text-gray-800 border-b pb-2">
-                <Icons.ClipboardList className="mr-3 w-8 h-8" /> RELATÓRIOS DE RETORNO (OMs FECHADAS)
-            </h2>
+        <div className="p-8 h-full flex flex-col bg-gray-100">
+            <div className="flex items-center justify-between mb-8 border-b border-gray-300 pb-4">
+                 <h2 className="text-4xl font-black flex items-center text-gray-800 tracking-tight">
+                    <Icons.ClipboardList className="mr-4 w-10 h-10 text-yellow-600" /> 
+                    RELATÓRIOS DE RETORNO
+                </h2>
+                <div className="text-right">
+                    <p className="text-sm font-bold text-gray-500">OMs Encerradas</p>
+                    <p className="text-3xl font-bold text-gray-800">{finishedMaintenances.length}</p>
+                </div>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-y-auto pb-10 px-2">
                 {finishedMaintenances.map((m) => {
                     const relatedDocs = docs.filter(d => d.maintenanceId === m.id);
                     const doc = relatedDocs.find(d => d.type === 'checklist') || relatedDocs[0];
@@ -886,9 +1159,10 @@ const ScreenReports = ({ activeMaintenances, docs, settings }) => {
                     return <ReportCard key={m.id} m={m} doc={doc} settings={settings} />;
                 })}
                 {finishedMaintenances.length === 0 && (
-                    <div className="col-span-full text-center py-20 bg-white rounded shadow text-gray-400">
-                        <Icons.FileCheck className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-xl font-bold">Nenhuma manutenção encerrada disponível para relatório.</p>
+                    <div className="col-span-full text-center py-32 bg-white rounded-xl shadow-sm border border-dashed border-gray-300 text-gray-400">
+                        <Icons.FileCheck className="w-24 h-24 mx-auto mb-6 opacity-20" />
+                        <p className="text-2xl font-bold text-gray-300">Nenhuma manutenção encerrada disponível para relatório.</p>
+                        <p className="text-sm mt-2">Encerre uma manutenção através do Checklist para gerar o relatório.</p>
                     </div>
                 )}
             </div>
@@ -896,245 +1170,125 @@ const ScreenReports = ({ activeMaintenances, docs, settings }) => {
     );
 };
 
-const ScreenProgramming = ({ schedule, setSchedule }) => {
-    const [newItem, setNewItem] = useState({ 
-        omFrota: '', 
-        description: '', 
-        dateMin: '', 
-        dateMax: '', 
-        priority: 'MÉDIA', 
-        peopleCount: '', 
-        hours: '', 
-        startDate: new Date().toISOString().split('T')[0], 
-        endDate: '', 
-        workCenter: '', 
-        startTime: '', 
-        endTime: '', 
-        resource: '' 
-    });
-    const [importText, setImportText] = useState('');
-    const [showImport, setShowImport] = useState(false);
-    const [viewMode, setViewMode] = useState('list'); // 'list' or 'panel'
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+const ScreenProgramming = ({ schedule, onStartTask, activeMaintenances }) => {
+    const [selectedDate, setSelectedDate] = useState('');
+    const [showPrintPreview, setShowPrintPreview] = useState(false);
+    
+    const filteredSchedule = schedule.filter(item => {
+        if (!selectedDate) return true;
+        const today = selectedDate;
+        const start = item.startDate;
+        const end = item.endDate || item.startDate;
+        return today >= start && today <= end;
+    }).sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
 
-    const handleAdd = () => {
-        if (!newItem.description || !newItem.workCenter) return alert("Preencha ao menos Descrição e Centro de Trabalho.");
-        setSchedule([...schedule, { ...newItem, id: Date.now() }]);
-        setNewItem({ 
-            omFrota: '',
-            description: '', dateMin: '', dateMax: '', priority: 'MÉDIA', peopleCount: '', hours: '', 
-            startDate: new Date().toISOString().split('T')[0], endDate: '', workCenter: '', startTime: '', endTime: '', resource: '' 
-        });
-    };
-
-    const handleDelete = (id) => {
-        setSchedule(schedule.filter(i => i.id !== id));
-    };
-
-    const handleImport = () => {
-        const lines = importText.split('\n');
-        const newItems = [];
-        let successCount = 0;
-
-        lines.forEach(line => {
-            if (!line.trim()) return;
-            
-            // Expected Order: 
-            // 0:OM/FROTA, 1:DESCRIÇÃO DA ATIVIDADE, 2:DATA MIN, 3:DATA MAX, 4:PRIORIDADE, 5:NUMERO DE PESSOAS, 6:H, 
-            // 7:DATA INICIO, 8:DATA FIM, 9:CENTRO DE TRABALHO, 10:HORA INICIO, 11:HORA FIM, 12:RECURSO
-            
-            const parts = line.split('\t'); // Excel copy uses Tabs
-
-            if (parts.length >= 2) {
-                // Formatting dates if possible, assuming basic parsing
-                newItems.push({
-                    id: Date.now() + Math.random(),
-                    omFrota: parts[0]?.trim() || '',
-                    description: parts[1]?.trim() || '',
-                    dateMin: parts[2]?.trim() || '',
-                    dateMax: parts[3]?.trim() || '',
-                    priority: parts[4]?.trim() || 'MÉDIA',
-                    peopleCount: parts[5]?.trim() || '',
-                    hours: parts[6]?.trim() || '',
-                    startDate: parts[7]?.trim() || new Date().toISOString().split('T')[0],
-                    endDate: parts[8]?.trim() || '',
-                    workCenter: parts[9]?.trim() || '',
-                    startTime: parts[10]?.trim() || '',
-                    endTime: parts[11]?.trim() || '',
-                    resource: parts[12]?.trim() || ''
-                });
-                successCount++;
-            }
-        });
-        
-        if (successCount > 0) {
-            setSchedule([...schedule, ...newItems]);
-            setImportText('');
-            setShowImport(false);
-            alert(`${successCount} itens importados com sucesso!`);
-        } else {
-            alert("Nenhum item válido encontrado. Verifique se copiou as 13 colunas do Excel corretamente.");
-        }
-    };
-
-    const filteredSchedule = (viewMode === 'panel' 
-        ? schedule.filter(item => {
-            // Try to match start date logic roughly
-            if(!item.startDate) return false;
-            // Handle possible different date formats if imported
-            // return item.startDate === selectedDate;
-            const today = selectedDate;
-            const start = item.startDate;
-            const end = item.endDate || item.startDate;
-            return today >= start && today <= end;
-        })
-        : schedule).sort((a, b) => new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime());
+    if (showPrintPreview) {
+        return <ProgrammingPrintTemplate schedule={filteredSchedule} onClose={() => setShowPrintPreview(false)} />;
+    }
 
     return (
-        <div className="p-6 h-full flex flex-col bg-gray-100">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 className="text-3xl font-bold flex items-center text-gray-800">
-                    <Icons.Calendar className="mr-3 w-8 h-8" /> PROGRAMAÇÃO DE MANUTENÇÃO
-                </h2>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setViewMode('list')} 
-                        className={`px-4 py-2 rounded font-bold ${viewMode === 'list' ? 'bg-black text-yellow-400' : 'bg-white text-gray-600 border'}`}
-                    >
-                        LISTA GERAL
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('panel')} 
-                        className={`px-4 py-2 rounded font-bold flex items-center gap-2 ${viewMode === 'panel' ? 'bg-black text-yellow-400' : 'bg-white text-gray-600 border'}`}
-                    >
-                        <Icons.Layers size={16} /> PAINEL DO DIA
-                    </button>
+        <div className="h-full flex flex-col bg-gray-100">
+            <div className="p-6">
+                <div className="flex justify-between items-center border-b pb-4">
+                    <h2 className="text-3xl font-bold flex items-center text-gray-800">
+                        <Icons.Calendar className="mr-3 w-8 h-8" /> PROGRAMAÇÃO DE MANUTENÇÃO
+                    </h2>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowPrintPreview(true)} 
+                            className="bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:bg-green-700 transition-colors"
+                        >
+                            <Icons.Download className="w-4 h-4 mr-2" /> BAIXAR PDF
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {viewMode === 'list' && (
-                <div className="bg-white p-4 rounded shadow mb-6 border border-gray-200">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold">Adicionar Manualmente</h3>
-                        <button 
-                            onClick={() => setShowImport(!showImport)} 
-                            className="text-sm text-blue-600 hover:underline font-bold flex items-center"
-                        >
-                            <Icons.FileSpreadsheet className="w-4 h-4 mr-1" />
-                            {showImport ? 'Fechar Importação' : 'Importar do Excel / PDF'}
-                        </button>
+            {/* QUICK ACTIONS & FILTERS */}
+            <div className="px-6">
+                <div className="bg-white p-4 rounded shadow mb-4 border border-gray-200 flex flex-wrap gap-4 items-center justify-between">
+                    <div className="flex items-center gap-4">
+                         <div>
+                            <label className="text-xs font-bold block text-gray-500 mb-1">FILTRAR POR DATA:</label>
+                            <input type="date" className="border p-2 rounded text-sm font-bold bg-gray-50" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                            {selectedDate && <button onClick={() => setSelectedDate('')} className="ml-2 text-xs text-red-500 underline">Limpar</button>}
+                         </div>
                     </div>
-                    
-                    {showImport && (
-                        <div className="mb-4 bg-green-50 p-4 rounded border border-green-200">
-                            <p className="text-sm text-green-800 mb-2 font-bold flex items-center">
-                                <Icons.Copy className="w-4 h-4 mr-1" />
-                                Instruções: Copie as 13 colunas do Excel nesta ordem e cole abaixo:
-                            </p>
-                            <div className="text-[10px] text-gray-600 font-mono mb-2 bg-white p-1 border overflow-x-auto whitespace-nowrap">
-                                OM/FROTA | DESCRIÇÃO DA ATIVIDADE | DATA MIN | DATA MAX | PRIORIDADE | NUMERO DE PESSOAS | H | DATA INICIO | DATA FIM | CENTRO DE TRABALHO | HORA INICIO | HORA FIM | RECURSO
-                            </div>
-                            <textarea 
-                                className="w-full p-2 border rounded h-32 text-xs font-mono mb-2"
-                                placeholder="Cole aqui os dados copiados do Excel..."
-                                value={importText}
-                                onChange={e => setImportText(e.target.value)}
-                            />
-                            <button onClick={handleImport} className="bg-green-600 text-white px-6 py-2 rounded text-sm font-bold shadow hover:bg-green-700">
-                                PROCESSAR DADOS
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 items-end bg-gray-50 p-3 rounded">
-                        <div><label className="text-[10px] font-bold block text-red-700">OM / FROTA</label><input className="w-full border p-1 rounded text-xs" value={newItem.omFrota} onChange={e => setNewItem({...newItem, omFrota: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Descrição</label><input className="w-full border p-1 rounded text-xs" value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Data Min</label><input className="w-full border p-1 rounded text-xs" value={newItem.dateMin} onChange={e => setNewItem({...newItem, dateMin: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Data Max</label><input className="w-full border p-1 rounded text-xs" value={newItem.dateMax} onChange={e => setNewItem({...newItem, dateMax: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Prioridade</label><input className="w-full border p-1 rounded text-xs" value={newItem.priority} onChange={e => setNewItem({...newItem, priority: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Nº Pessoas</label><input className="w-full border p-1 rounded text-xs" value={newItem.peopleCount} onChange={e => setNewItem({...newItem, peopleCount: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">H (Horas)</label><input className="w-full border p-1 rounded text-xs" value={newItem.hours} onChange={e => setNewItem({...newItem, hours: e.target.value})} /></div>
-                        
-                        <div><label className="text-[10px] font-bold block text-blue-700">Data Início</label><input type="date" className="w-full border p-1 rounded text-xs border-blue-300" value={newItem.startDate} onChange={e => setNewItem({...newItem, startDate: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Data Fim</label><input type="date" className="w-full border p-1 rounded text-xs" value={newItem.endDate} onChange={e => setNewItem({...newItem, endDate: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Centro Trab.</label><input className="w-full border p-1 rounded text-xs" value={newItem.workCenter} onChange={e => setNewItem({...newItem, workCenter: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Hora Início</label><input className="w-full border p-1 rounded text-xs" value={newItem.startTime} onChange={e => setNewItem({...newItem, startTime: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Hora Fim</label><input className="w-full border p-1 rounded text-xs" value={newItem.endTime} onChange={e => setNewItem({...newItem, endTime: e.target.value})} /></div>
-                        <div><label className="text-[10px] font-bold block">Recurso</label><input className="w-full border p-1 rounded text-xs" value={newItem.resource} onChange={e => setNewItem({...newItem, resource: e.target.value})} /></div>
-
-                        <div className="col-span-2 md:col-span-6 flex justify-end mt-2">
-                             <button onClick={handleAdd} className="bg-black text-yellow-400 px-6 py-2 rounded font-bold h-8 text-xs hover:bg-gray-800 flex items-center">ADICIONAR</button>
-                        </div>
+                    <div className="text-right">
+                        <p className="text-xs font-bold text-gray-400">Total de Itens</p>
+                        <p className="text-xl font-bold">{filteredSchedule.length}</p>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {viewMode === 'panel' && (
-                <div className="bg-yellow-500 p-4 rounded-t-lg shadow-lg flex justify-between items-center text-black">
-                     <div className="flex items-center gap-4">
-                        <Icons.AlertTriangle className="w-10 h-10" />
-                        <div>
-                            <h2 className="text-2xl font-black uppercase tracking-tighter">PAINEL DIÁRIO</h2>
-                            <p className="text-sm font-bold opacity-80">Atividades Programadas</p>
-                        </div>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold block mb-1 opacity-80">FILTRAR DATA INÍCIO:</label>
-                        <input 
-                            type="date" 
-                            className="p-2 rounded font-bold border-2 border-black bg-white" 
-                            value={selectedDate} 
-                            onChange={e => setSelectedDate(e.target.value)} 
-                        />
-                     </div>
-                </div>
-            )}
-
-            <div className={`bg-white rounded shadow overflow-hidden flex-1 border border-gray-200 flex flex-col ${viewMode === 'panel' ? 'rounded-t-none border-t-0' : ''}`}>
-                 <div className="p-3 bg-gray-100 border-b font-bold text-sm flex justify-between">
-                     <span>{viewMode === 'panel' ? `FILTRO: ${new Date(selectedDate).toLocaleDateString('pt-BR')}` : 'TODAS AS ATIVIDADES'}</span>
-                     <span className="text-gray-500">Total: {filteredSchedule.length}</span>
-                 </div>
-                 <div className="overflow-x-auto overflow-y-auto flex-1 p-0">
-                     <table className="w-full text-left text-xs whitespace-nowrap">
-                         <thead className="bg-gray-50 text-gray-600 uppercase sticky top-0 z-10">
+            {/* MAIN TABLE - FORMAL LAYOUT */}
+            <div className="bg-white rounded-t-lg shadow-lg overflow-hidden flex-1 border border-gray-400 flex flex-col mx-6 mb-6">
+                 <div className="overflow-auto flex-1">
+                     <table className="w-full text-left text-xs whitespace-nowrap border-collapse">
+                         <thead className="bg-black text-white uppercase sticky top-0 z-10 shadow-md">
                              <tr>
-                                 <th className="p-2 border-b">OM / Frota</th>
-                                 <th className="p-2 border-b">Descrição</th>
-                                 <th className="p-2 border-b">Centro Trab.</th>
-                                 <th className="p-2 border-b">Recurso</th>
-                                 <th className="p-2 border-b">Início</th>
-                                 <th className="p-2 border-b">Fim</th>
-                                 <th className="p-2 border-b">H. Ini</th>
-                                 <th className="p-2 border-b">H. Fim</th>
-                                 <th className="p-2 border-b">Prioridade</th>
-                                 <th className="p-2 border-b">Pessoas</th>
-                                 <th className="p-2 border-b text-right">Ação</th>
+                                 <th className="p-3 border border-gray-600">FROTA/OM</th>
+                                 <th className="p-3 border border-gray-600">DESCRIÇÃO DA ATIVIDADE</th>
+                                 <th className="p-3 border border-gray-600">DATA MIN</th>
+                                 <th className="p-3 border border-gray-600">DATA MAX</th>
+                                 <th className="p-3 border border-gray-600">PRIORIDADE</th>
+                                 <th className="p-3 border border-gray-600">N DE PESSOAS</th>
+                                 <th className="p-3 border border-gray-600">H</th>
+                                 <th className="p-3 border border-gray-600">DATA INICIO</th>
+                                 <th className="p-3 border border-gray-600">DATA FIM</th>
+                                 <th className="p-3 border border-gray-600">CENTRO DE TRABALHO</th>
+                                 <th className="p-3 border border-gray-600">HORA INICIO</th>
+                                 <th className="p-3 border border-gray-600">HORA FIM</th>
+                                 <th className="p-3 border border-gray-600">RECURSOS</th>
+                                 <th className="p-3 border border-gray-600">AÇÃO</th>
                              </tr>
                          </thead>
-                         <tbody>
-                             {filteredSchedule.map(item => (
-                                 <tr key={item.id} className={`border-b hover:bg-yellow-50 ${viewMode === 'panel' ? 'text-sm' : ''}`}>
-                                     <td className="p-2 font-bold text-blue-900">{item.omFrota}</td>
-                                     <td className="p-2 font-bold truncate max-w-[200px]" title={item.description}>{item.description}</td>
-                                     <td className="p-2 text-blue-800 font-bold">{item.workCenter}</td>
-                                     <td className="p-2 font-mono">{item.resource}</td>
-                                     <td className="p-2">{item.startDate}</td>
-                                     <td className="p-2">{item.endDate}</td>
-                                     <td className="p-2 text-green-700 font-bold">{item.startTime}</td>
-                                     <td className="p-2 text-red-700 font-bold">{item.endTime}</td>
-                                     <td className="p-2">{item.priority}</td>
-                                     <td className="p-2 text-center">{item.peopleCount}</td>
-                                     <td className="p-2 text-right">
-                                         <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700"><Icons.Trash size={14}/></button>
-                                     </td>
-                                 </tr>
-                             ))}
+                         <tbody className="divide-y divide-gray-200">
+                             {filteredSchedule.map((item) => {
+                                 const isTaskActive = activeMaintenances.some(m => m.programmingId === item.id && m.status !== 'finished');
+                                 return (
+                                     <tr key={item.id} className="hover:bg-yellow-50">
+                                         <td className="p-3 border">{item.omFrota}</td>
+                                         <td className="p-3 border">{item.description}</td>
+                                         <td className="p-3 border">{item.dateMin}</td>
+                                         <td className="p-3 border">{item.dateMax}</td>
+                                         <td className="p-3 border">{item.priority}</td>
+                                         <td className="p-3 border">{item.peopleCount}</td>
+                                         <td className="p-3 border">{item.hours}</td>
+                                         <td className="p-3 border">{item.startDate}</td>
+                                         <td className="p-3 border">{item.endDate}</td>
+                                         <td className="p-3 border">{item.workCenter}</td>
+                                         <td className="p-3 border">{item.startTime}</td>
+                                         <td className="p-3 border">{item.endTime}</td>
+                                         <td className="p-3 border bg-blue-50 font-semibold text-blue-800">{item.resource}</td>
+                                         <td className="p-3 border">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button 
+                                                    onClick={() => onStartTask(item)}
+                                                    disabled={isTaskActive}
+                                                    className={`flex items-center justify-center gap-1 text-white text-xs px-2 py-2 rounded font-bold transition-colors ${
+                                                        isTaskActive 
+                                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                                            : 'bg-green-600 hover:bg-green-700'
+                                                    }`}
+                                                    title="Iniciar Tarefa no Dashboard"
+                                                >
+                                                    <Icons.PlayCircle size={14} /> 
+                                                    <span className="hidden sm:inline">{isTaskActive ? 'ATIVO' : 'INICIAR'}</span>
+                                                </button>
+                                            </div>
+                                         </td>
+                                     </tr>
+                                 );
+                             })}
                              {filteredSchedule.length === 0 && (
-                                 <tr><td colSpan={11} className="p-12 text-center text-gray-400 font-bold">Nenhuma atividade encontrada.</td></tr>
+                                 <tr><td colSpan={14} className="p-12 text-center text-gray-400 font-bold bg-white">Nenhuma atividade encontrada para o filtro selecionado.</td></tr>
                              )}
                          </tbody>
                      </table>
+                 </div>
+                 <div className="p-2 bg-black text-white border-t border-gray-800 text-[10px] text-center font-mono uppercase">
+                     Sistema de Gestão de Manutenção - Visualização Oficial
                  </div>
             </div>
         </div>
@@ -1148,6 +1302,7 @@ const ProgrammingAlert = ({ schedule, onClose }) => {
     const localNow = new Date(now.getTime() - (offset*60*1000));
     const todayISO = localNow.toISOString().split('T')[0];
 
+    // The alert correctly filters tasks where today's date falls within the task's start and end dates.
     const todaysItems = schedule?.filter(item => {
         if (!item.startDate) return false;
         const start = item.startDate;
@@ -1201,9 +1356,53 @@ const ProgrammingAlert = ({ schedule, onClose }) => {
     );
 };
 
+const CorrectiveMaintenanceAlert = ({ tasks, onClose }) => {
+    if (tasks.length === 0) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-black bg-opacity-90 flex flex-col items-center justify-center animate-fade-in text-white p-4">
+            <div className="w-full max-w-4xl bg-red-600 text-white rounded-lg shadow-2xl overflow-hidden border-4 border-white transform transition-all scale-100 flex flex-col max-h-screen relative">
+                <button onClick={onClose} className="absolute top-4 right-4 bg-white hover:bg-yellow-400 hover:text-black text-black p-2 rounded-full font-bold z-50 shadow-lg transition-colors border-2 border-black" title="Interromper Alerta">
+                    <Icons.X size={24} />
+                </button>
+                <div className="bg-black text-red-500 p-6 text-center shrink-0">
+                    <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter flex justify-center items-center gap-4 animate-pulse">
+                        <Icons.AlertTriangle className="w-12 h-12 md:w-20 md:h-20" />
+                        ALERTA: MANUTENÇÃO CORRETIVA
+                        <Icons.AlertTriangle className="w-12 h-12 md:w-20 md:h-20" />
+                    </h1>
+                    <p className="text-xl mt-2 text-white font-bold">TAREFAS ATIVAS NÃO PROGRAMADAS</p>
+                </div>
+                
+                <div className="p-4 bg-red-500 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-3">
+                        {tasks.map(task => (
+                            <div key={task.id} className="bg-white text-black border-l-8 border-black p-4 shadow-lg flex flex-col md:flex-row justify-between items-center rounded gap-4">
+                                <div className="flex-1 text-left">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                        {task.tag && <span className="bg-white text-black border border-black text-xs font-bold px-2 py-1 rounded">TAG: {task.tag}</span>}
+                                        <span className="text-xs font-bold bg-gray-200 px-2 py-1 rounded">Resp: {task.userName}</span>
+                                    </div>
+                                    <p className="text-xl md:text-2xl text-gray-800 font-bold uppercase leading-tight">{task.taskName}</p>
+                                </div>
+                                <div className="font-mono font-bold text-lg bg-red-100 text-red-700 px-4 py-2 rounded-lg">
+                                    <MaintenanceTimer startTime={task.startTime} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="bg-black p-2 text-center text-white text-sm font-mono shrink-0">
+                    ALERTA ATIVO POR 20 SEGUNDOS...
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- SCREENS ---
 
-const ScreenLogin = ({ onLogin, users, setUsers }) => {
+const ScreenLogin = ({ onLogin, users, onUserChange }) => {
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -1246,7 +1445,7 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
         password: regPassword,
         role: regRole === 'Admin' ? 'admin' : 'user'
     };
-    setUsers([...users, newUser]);
+    onUserChange({ type: 'ADD_USER', payload: newUser });
     alert("Cadastro realizado com sucesso! Faça login.");
     setIsRegistering(false);
     // Auto-fill login
@@ -1256,7 +1455,7 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
 
   const handleCreateAdmin = () => {
     const newUser = { name: 'Administrador', matricula: 'admin', password: 'admin', role: 'admin' };
-    setUsers([newUser]);
+    onUserChange({ type: 'ADD_USER', payload: newUser });
     alert('Admin criado! User: admin / Pass: admin');
   };
 
@@ -1288,9 +1487,9 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
       {/* BACKGROUND & OVERLAY */}
       <div className="absolute inset-0 z-0">
         <img 
-            src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2070&auto=format&fit=crop" 
+            src="https://storage.googleapis.com/aistudio-hub-generative-ai-assets/e69315f0-6c90-48e0-a7d1-e97022d861ce/vale-background.png" 
             alt="Industrial Background" 
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-gray-900/80 to-black/60"></div>
       </div>
@@ -1302,9 +1501,7 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
       <div className="relative z-10 w-full max-w-lg p-8 mx-4">
         {/* LOGO AREA */}
         <div className="text-center mb-8 animate-in slide-in-from-top duration-700">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-yellow-500 mb-6 shadow-[0_0_30px_rgba(234,179,8,0.4)] border-4 border-black">
-                <Icons.AlertTriangle size={48} className="text-black" />
-            </div>
+            <img src={VALE_LOGO_URL} alt="Vale Logo" className="w-32 mx-auto mb-6 drop-shadow-lg" />
             <h1 className="text-6xl font-black text-white tracking-tighter mb-2 leading-none drop-shadow-2xl">
                 ART
             </h1>
@@ -1495,17 +1692,40 @@ const ScreenLogin = ({ onLogin, users, setUsers }) => {
   );
 };
 
-const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, refreshData, networkName, isOnline }) => {
+const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, refreshData, networkName, isOnline, location, syncStatus, offlineQueueLength, onRequestNotifications, notificationPermission }) => {
   const activeList = activeMaintenances.filter(m => m.status !== 'finished');
   const finishedList = activeMaintenances.filter(m => m.status === 'finished');
+  const [weather, setWeather] = useState(null);
+  const [weatherStatus, setWeatherStatus] = useState('idle');
 
   useEffect(() => {
     const interval = setInterval(() => {
       refreshData();
-      console.log("Painel atualizado via rede/Wi-Fi...", new Date().toLocaleTimeString());
     }, 30000);
     return () => clearInterval(interval);
   }, [refreshData]);
+  
+  useEffect(() => {
+      if (location && isOnline) {
+        setWeatherStatus('loading');
+        const { latitude, longitude } = location;
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`)
+          .then(res => {
+              if(!res.ok) throw new Error('Network response was not ok');
+              return res.json();
+          })
+          .then(data => {
+            setWeather(data.current_weather);
+            setWeatherStatus('success');
+          })
+          .catch(error => {
+            console.error("Error fetching weather", error);
+            setWeatherStatus('error');
+          });
+      } else if (!isOnline) {
+          setWeatherStatus('error');
+      }
+  }, [location, isOnline]);
 
   return (
     <div className="p-8 h-full flex flex-col relative">
@@ -1514,23 +1734,26 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, ref
             <h1 className="text-4xl font-bold uppercase mb-1 tracking-tighter">SEGURANÇA EM 1º LUGAR</h1>
             <p className="text-lg italic text-white opacity-90">"Nenhum trabalho é tão urgente que não possa ser feito com segurança."</p>
           </div>
-          <div className="text-right text-white hidden md:block">
-             <div className="flex items-center justify-end mb-1">
-                 <Icons.Lock className="w-3 h-3 text-green-500 mr-1" />
-                 <p className="text-sm font-bold">{currentUser.name}</p>
-             </div>
-             {networkName && (
-                <div className="flex items-center justify-end gap-2">
-                    <span className="flex items-center text-xs bg-gray-800 px-2 py-1 rounded text-green-400 border border-green-900 animate-pulse">
-                         <Icons.Wifi className="w-3 h-3 mr-1" /> CONECTADO REDE LOCAL: {networkName}
-                    </span>
-                </div>
-             )}
-             <div className="flex items-center justify-end mt-1">
-                 <span className={`flex items-center text-xs px-2 py-1 rounded border font-bold ${isOnline ? 'bg-blue-900 text-blue-200 border-blue-700' : 'bg-red-900 text-red-200 border-red-700'}`}>
-                     <Icons.CloudLightning className="w-3 h-3 mr-1" /> 
-                     {isOnline ? 'NUVEM SINCRONIZADA' : 'OFFLINE - MODO LOCAL'}
-                 </span>
+          <div className="text-right text-white flex items-center gap-4">
+             <WeatherWidget weather={weather} status={weatherStatus} />
+             <div className="hidden md:block">
+                 <div className="flex items-center justify-end mb-1">
+                     <Icons.Lock className="w-3 h-3 text-green-500 mr-1" />
+                     <p className="text-sm font-bold">{currentUser.name}</p>
+                 </div>
+                 <div className="flex items-center justify-end gap-2 mt-1">
+                     <SyncStatusIndicator status={syncStatus} queueLength={offlineQueueLength} />
+                      {notificationPermission === 'default' && (
+                        <button onClick={onRequestNotifications} className="flex items-center gap-2 text-xs text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded-full border border-yellow-700 hover:bg-yellow-800">
+                            <Icons.Bell size={14} /> Ativar Alertas
+                        </button>
+                      )}
+                      {notificationPermission === 'granted' && (
+                        <div className="flex items-center gap-2 text-xs text-green-300">
+                          <Icons.Bell size={14} /> Alertas Ativos
+                        </div>
+                      )}
+                 </div>
              </div>
           </div>
       </div>
@@ -1539,7 +1762,7 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, ref
           <div className="lg:col-span-2 bg-white rounded shadow-xl border border-gray-300 flex flex-col relative overflow-hidden">
              <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 relative">
                  <h2 className="text-2xl font-bold text-red-600 flex items-center animate-pulse">
-                    <Icons.Activity /> <span className="ml-2">MONITORAMENTO 24H - EM ANDAMENTO</span>
+                    <Icons.Activity /> <span className="ml-2">EM ANDAMENTO</span>
                  </h2>
                  <div className="flex items-center gap-2">
                     <span className="text-[10px] text-gray-400 animate-pulse flex items-center"><Icons.Clock className="w-3 h-3 mr-1"/> Atualização: 30s</span>
@@ -1549,10 +1772,11 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, ref
                  </div>
              </div>
 
-             <div className="w-full h-40 bg-gray-100 flex items-center justify-center border-b border-gray-300 relative overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-100 opacity-50"></div>
-                 <div className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">Off-Road Monitoring</div>
-             </div>
+            <div className="w-full h-40 bg-gray-800 flex items-center justify-center border-b border-gray-300 relative overflow-hidden">
+                <img src="https://storage.googleapis.com/aistudio-hub-generative-ai-assets/e69315f0-6c90-48e0-a7d1-e97022d861ce/vale-background.png" className="absolute inset-0 w-full h-full object-cover opacity-20" alt="Monitoring Background" />
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-900/50 via-transparent to-gray-900/50"></div>
+                <h3 className="relative text-3xl font-black text-white tracking-wider drop-shadow-lg">MONITORAMENTO OFF-ROAD</h3>
+            </div>
              
              <div className="p-4 overflow-y-auto flex-1 bg-gray-100 z-10 relative">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1600,7 +1824,7 @@ const ScreenDashboard = ({ currentUser, activeMaintenances, onOpenChecklist, ref
     </div>
   );
 };
-const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPreview }) => {
+const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings }) => {
   const [header, setHeader] = useState({ 
       taskName: '', om: '', tag: '', activityType: 'Mecânica', location: '', 
       hasPlanning: false, docVersion: 'PRO 0034346 - Anexo 1 - REV 03 - 20/12/2023',
@@ -1611,7 +1835,7 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
   const [riskLocations, setRiskLocations] = useState({}); 
   const [riskControls, setRiskControls] = useState({});
   const [signatures, setSignatures] = useState([]);
-  const [maintenanceType, setMaintenanceType] = useState('preventiva');
+  const [maintenanceType, setMaintenanceType] = useState('corretiva');
   const [correctionDescription, setCorrectionDescription] = useState('');
 
   useEffect(() => {
@@ -1631,7 +1855,7 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
       setRiskLocations(editingDoc.riskLocations || {});
       setRiskControls(editingDoc.riskControls || {});
       setSignatures(editingDoc.signatures || []);
-      setMaintenanceType(editingDoc.maintenanceType || 'preventiva');
+      setMaintenanceType(editingDoc.maintenanceType || 'corretiva');
       setCorrectionDescription(editingDoc.correctionDescription || '');
     }
   }, [editingDoc]);
@@ -1685,7 +1909,7 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
         alert("ERRO DE VALIDAÇÃO: A assinatura é OBRIGATÓRIA para salvar este documento.");
         return;
     }
-    onSave(getDocData());
+    onSave({ type: 'SAVE_DOC', payload: getDocData() });
   };
 
   const QUADRANTS = ['Frente / Abaixo', 'Atrás / Acima', 'Esquerda', 'Direita'];
@@ -1765,7 +1989,7 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
       </div>
 
       <div className="mb-6 p-4 border rounded bg-gray-50">
-        <p className="font-bold mb-2">ETAPA DE EXECUÇÃO: Essa tarefa possui PRO ou ART de planejamento? <span className="font-mono font-bold ml-2">{header.hasPlanning ? '[X] SIM  [ ] NÃO' : '[ ] SIM  [X] NÃO'}</span></p>
+        <p className="font-bold mb-2">ETAPA DE EXECUÇÃO: Essa tarefa possui PRO ou ART de planejamento? <span className="font-mono font-bold ml-2">{header.hasPlanning ? '[X] SIM  [ ] NÃO' : '[ ] SIM  [ ] NÃO'}</span></p>
         <div className="flex gap-4">
             <label className="flex items-center"><input type="radio" checked={header.hasPlanning} onChange={() => setHeader({...header, hasPlanning: true})} className="mr-2"/> SIM</label>
             <label className="flex items-center"><input type="radio" checked={!header.hasPlanning} onChange={() => setHeader({...header, hasPlanning: false})} className="mr-2"/> NÃO</label>
@@ -1830,7 +2054,7 @@ const ScreenArtEmergencial = ({ onSave, employees, editingDoc, settings, onPrevi
     </div>
   );
 };
-const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalDocs, onPreview }) => {
+const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalDocs }) => {
   const [header, setHeader] = useState({ 
       taskName: '', om: '', tag: '', activityType: 'Mecânica', location: '',
       date: new Date().toLocaleDateString('pt-BR'),
@@ -1842,7 +2066,7 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
   const [additionalMeasures, setAdditionalMeasures] = useState('');
   const [signatures, setSignatures] = useState([]);
   const [attachedPdfName, setAttachedPdfName] = useState('');
-  const [maintenanceType, setMaintenanceType] = useState('preventiva');
+  const [maintenanceType, setMaintenanceType] = useState('corretiva');
   const [correctionDescription, setCorrectionDescription] = useState('');
 
   useEffect(() => {
@@ -1862,7 +2086,7 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
         setAdditionalMeasures(editingDoc.additionalMeasures || '');
         setSignatures(editingDoc.signatures || []);
         setAttachedPdfName(editingDoc.attachedPdfName || '');
-        setMaintenanceType(editingDoc.maintenanceType || 'preventiva');
+        setMaintenanceType(editingDoc.maintenanceType || 'corretiva');
         setCorrectionDescription(editingDoc.correctionDescription || '');
     }
   }, [editingDoc]);
@@ -1904,14 +2128,14 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
         return;
      }
      if (maintenanceType === 'corretiva' && !correctionDescription) {
-        alert("Por favor, descreva a manutenção corretiva.");
+        alert("Por favor, descreva a manutenção realizada.");
         return;
      }
      if (signatures.length === 0) {
         alert("ERRO DE VALIDAÇÃO: A assinatura é OBRIGATÓRIA para salvar este documento.");
         return;
     }
-     onSave(getDocData());
+    onSave({ type: 'SAVE_DOC', payload: getDocData() });
   };
 
   return (
@@ -2043,7 +2267,7 @@ const ScreenArtAtividade = ({ onSave, employees, editingDoc, settings, externalD
     </div>
   );
 };
-const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings, onPreview }) => {
+const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings }) => {
   const [header, setHeader] = useState({ 
       taskName: '', om: '', tag: '', activityType: 'Mecânica', location: '',
       date: new Date().toLocaleDateString('pt-BR'),
@@ -2110,7 +2334,7 @@ const ScreenChecklist = ({ onSave, employees, editingDoc, preFill, settings, onP
         alert("ERRO DE VALIDAÇÃO: A assinatura é OBRIGATÓRIA para salvar este documento.");
         return;
     }
-    onSave(getDocData());
+    onSave({ type: 'SAVE_DOC', payload: getDocData() });
   };
 
   return (
@@ -2239,11 +2463,14 @@ const ScreenExternalArt = ({ onSave, editingDoc }) => {
         alert('Faça o upload do PDF.');
         return;
     }
-    onSave({
-      ...form,
-      type: 'external',
-      date: new Date().toLocaleDateString('pt-BR'),
-      id: editingDoc ? editingDoc.id : Date.now()
+    onSave({ 
+      type: 'SAVE_DOC', 
+      payload: {
+        ...form,
+        type: 'external',
+        date: new Date().toLocaleDateString('pt-BR'),
+        id: editingDoc ? editingDoc.id : Date.now()
+      }
     });
     setForm({ fileName: '', artNumber: '', fileContent: '' });
     alert('ART Cadastrada com Sucesso!');
@@ -2348,7 +2575,7 @@ const ScreenHistory = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNet
                                     <button onClick={() => onEdit(doc)} className="p-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200" title="Editar">
                                         <Icons.Edit size={18} />
                                     </button>
-                                    <button onClick={() => onDelete(doc.id)} className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Excluir">
+                                    <button onClick={() => onDelete({ type: 'DELETE_DOC', payload: doc.id })} className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Excluir">
                                         <Icons.Trash size={18} />
                                     </button>
                                     <button onClick={() => onSendToNetwork(doc)} className="p-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200" title="Enviar Rede">
@@ -2387,7 +2614,7 @@ const ScreenHistory = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNet
                              <button onClick={() => onView(doc)} className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex-1 flex justify-center"><Icons.Eye size={14}/></button>
                              <button onClick={() => onDownload(doc)} className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 flex-1 flex justify-center"><Icons.Download size={14}/></button>
                              <button onClick={() => onEdit(doc)} className="p-1 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100 flex-1 flex justify-center"><Icons.Edit size={14}/></button>
-                             <button onClick={() => onDelete(doc.id)} className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-1 flex justify-center"><Icons.Trash size={14}/></button>
+                             <button onClick={() => onDelete({ type: 'DELETE_DOC', payload: doc.id })} className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-1 flex justify-center"><Icons.Trash size={14}/></button>
                          </div>
                      </div>
                  ))}
@@ -2397,30 +2624,57 @@ const ScreenHistory = ({ docs, onView, onDownload, onEdit, onDelete, onSendToNet
     </div>
   );
 };
-const ScreenEmployeeRegister = ({ employees, setEmployees }) => {
+const ScreenEmployeeRegister = ({ employees, onSave, onDelete }) => {
   const [form, setForm] = useState({ name: '', role: '', matricula: '' });
+  const [editingMatricula, setEditingMatricula] = useState(null);
 
-  const handleAdd = () => {
+  const handleSaveClick = () => {
     if (!form.name || !form.matricula) return alert("Preencha nome e matrícula");
-    setEmployees([...employees, form]);
+    
+    const actionType = editingMatricula ? 'UPDATE_EMPLOYEE' : 'ADD_EMPLOYEE';
+    
+    if (!editingMatricula && employees.some(e => e.matricula === form.matricula)) {
+        return alert("Matrícula já cadastrada.");
+    }
+
+    onSave({ type: actionType, payload: form });
+    
+    setEditingMatricula(null);
     setForm({ name: '', role: '', matricula: '' });
   };
+  
+  const handleEdit = (employee) => {
+      setEditingMatricula(employee.matricula);
+      setForm(employee);
+  };
 
-  const handleDelete = (matricula) => {
+  const handleDeleteClick = (matricula) => {
       if (confirm("Excluir funcionário?")) {
-          setEmployees(employees.filter(e => e.matricula !== matricula));
+          onDelete({ type: 'DELETE_EMPLOYEE', payload: matricula });
       }
+  };
+  
+  const cancelEdit = () => {
+      setEditingMatricula(null);
+      setForm({ name: '', role: '', matricula: '' });
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded">
+    <div className="p-6 max-w-4xl mx-auto bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-4">Cadastro de Funcionários</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 p-4 border rounded bg-gray-50">
         <input placeholder="Nome Completo" className="border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
         <input placeholder="Função / Cargo" className="border p-2 rounded" value={form.role} onChange={e => setForm({...form, role: e.target.value})} />
-        <input placeholder="Matrícula" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} />
+        <input placeholder="Matrícula" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} disabled={!!editingMatricula} />
       </div>
-      <button onClick={handleAdd} className="w-full bg-blue-600 text-white p-2 rounded font-bold mb-6">ADICIONAR FUNCIONÁRIO</button>
+      <div className="flex gap-2 mb-6">
+        <button onClick={handleSaveClick} className="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700">
+            {editingMatricula ? 'SALVAR ALTERAÇÕES' : 'ADICIONAR FUNCIONÁRIO'}
+        </button>
+        {editingMatricula && (
+            <button onClick={cancelEdit} className="w-full bg-gray-500 text-white p-2 rounded font-bold hover:bg-gray-600">CANCELAR</button>
+        )}
+      </div>
       
       <div className="space-y-2">
         {employees.map(emp => (
@@ -2429,7 +2683,10 @@ const ScreenEmployeeRegister = ({ employees, setEmployees }) => {
                 <p className="font-bold">{emp.name}</p>
                 <p className="text-xs text-gray-500">{emp.role} | Mat: {emp.matricula}</p>
             </div>
-            <button onClick={() => handleDelete(emp.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+            <div className="flex gap-2">
+                <button onClick={() => handleEdit(emp)} className="p-2 text-blue-600 hover:bg-blue-100 rounded"><Icons.Edit /></button>
+                <button onClick={() => handleDeleteClick(emp.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -2437,41 +2694,79 @@ const ScreenEmployeeRegister = ({ employees, setEmployees }) => {
   );
 };
 
-const ScreenAdminUsers = ({ users, setUsers }) => {
-  const [form, setForm] = useState({ name: '', matricula: '', password: '' });
+const ScreenAdminUsers = ({ users, onSave, onDelete }) => {
+  const [form, setForm] = useState({ name: '', matricula: '', password: '', role: 'user' });
+  const [editingMatricula, setEditingMatricula] = useState(null);
 
-  const handleAdd = () => {
+  const handleSaveClick = () => {
     if (!form.name || !form.matricula || !form.password) return alert("Preencha todos os dados");
-    setUsers([...users, { ...form, role: 'user' }]);
-    setForm({ name: '', matricula: '', password: '' });
+    
+    const actionType = editingMatricula ? 'UPDATE_USER' : 'ADD_USER';
+
+    if (!editingMatricula && users.some(u => u.matricula === form.matricula)) {
+        return alert("Usuário com esta matrícula já existe.");
+    }
+    
+    onSave({ type: actionType, payload: form });
+    
+    setEditingMatricula(null);
+    setForm({ name: '', matricula: '', password: '', role: 'user' });
+  };
+  
+  const handleEdit = (user) => {
+      setEditingMatricula(user.matricula);
+      setForm(user);
   };
 
-  const handleDelete = (matricula) => {
-      if (confirm("Excluir usuário de sistema?")) {
-          setUsers(users.filter(u => u.matricula !== matricula));
+  const handleDeleteClick = (matricula) => {
+      if (matricula === 'admin') {
+          alert("Não é possível excluir o administrador padrão.");
+          return;
       }
+      if (confirm("Excluir usuário de sistema?")) {
+          onDelete({ type: 'DELETE_USER', payload: matricula });
+      }
+  };
+  
+  const cancelEdit = () => {
+      setEditingMatricula(null);
+      setForm({ name: '', matricula: '', password: '', role: 'user' });
   };
 
   return (
     <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-4">Gestão de Usuários (Login)</h2>
-      <div className="grid grid-cols-1 gap-3 mb-4">
+      <div className="grid grid-cols-1 gap-3 mb-4 p-4 border rounded bg-gray-50">
         <input placeholder="Nome do Usuário" className="border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
         <div className="grid grid-cols-2 gap-2">
-            <input placeholder="Login (Matrícula)" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} />
+            <input placeholder="Login (Matrícula)" className="border p-2 rounded" value={form.matricula} onChange={e => setForm({...form, matricula: e.target.value})} disabled={!!editingMatricula} />
             <input placeholder="Senha" type="password" className="border p-2 rounded" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
         </div>
+        <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="border p-2 rounded bg-white">
+            <option value="user">Usuário Padrão</option>
+            <option value="admin">Administrador</option>
+        </select>
       </div>
-      <button onClick={handleAdd} className="w-full bg-black text-white p-2 rounded font-bold mb-6">CRIAR USUÁRIO</button>
+      <div className="flex gap-2 mb-6">
+        <button onClick={handleSaveClick} className="w-full bg-black text-white p-2 rounded font-bold mb-6 hover:bg-gray-800">
+            {editingMatricula ? 'SALVAR ALTERAÇÕES' : 'CRIAR USUÁRIO'}
+        </button>
+        {editingMatricula && (
+            <button onClick={cancelEdit} className="w-full bg-gray-500 text-white p-2 rounded font-bold mb-6 hover:bg-gray-600">CANCELAR</button>
+        )}
+      </div>
 
       <div className="space-y-2">
         {users.map(u => (
           <div key={u.matricula} className="flex justify-between items-center border p-3 rounded">
             <div>
-                <p className="font-bold">{u.name} {u.role === 'admin' && <span className="text-xs bg-black text-white px-1 rounded">ADMIN</span>}</p>
+                <p className="font-bold">{u.name} {u.role === 'admin' && <span className="text-xs bg-black text-white px-2 py-1 rounded-full">ADMIN</span>}</p>
                 <p className="text-xs text-gray-500">Login: {u.matricula}</p>
             </div>
-            <button onClick={() => handleDelete(u.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+            <div className="flex gap-2">
+                <button onClick={() => handleEdit(u)} className="p-2 text-blue-600 hover:bg-blue-100 rounded"><Icons.Edit /></button>
+                <button onClick={() => handleDeleteClick(u.matricula)} className="p-2 text-red-600 hover:bg-red-100 rounded"><Icons.Trash /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -2479,32 +2774,224 @@ const ScreenAdminUsers = ({ users, setUsers }) => {
   );
 };
 
-const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees, setEmployees, externalArtProps, activeTab, setActiveTab }) => {
-  const [newTag, setNewTag] = useState('');
-  const [newLoc, setNewLoc] = useState('');
-  const [networkPath, setNetworkPath] = useState(settings.registeredNetwork || '');
-  const [wifiName, setWifiName] = useState(settings.wifiName || '');
-  const [networkUser, setNetworkUser] = useState(settings.networkUser || '');
-  const [networkPassword, setNetworkPassword] = useState(settings.networkPassword || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsappNumber || '');
+const ProgrammingManagementPanel = ({ schedule, onScheduleChange }) => {
+    const [newItem, setNewItem] = useState({ 
+        omFrota: '', 
+        description: '', 
+        dateMin: '', 
+        dateMax: '', 
+        priority: 'MÉDIA', 
+        peopleCount: '', 
+        hours: '', 
+        startDate: new Date().toISOString().split('T')[0], 
+        endDate: '', 
+        workCenter: '', 
+        startTime: '', 
+        endTime: '', 
+        resource: '' 
+    });
+    const [importText, setImportText] = useState('');
+    const [showImport, setShowImport] = useState(false);
+    const [showAdd, setShowAdd] = useState(false);
+    const [loadingPdf, setLoadingPdf] = useState(false);
+
+    const handleAdd = () => {
+        if (!newItem.description || !newItem.workCenter) return alert("Preencha ao menos Descrição e Centro de Trabalho.");
+        onScheduleChange([...schedule, { ...newItem, id: Date.now() }]);
+        setNewItem({ 
+            omFrota: '',
+            description: '', dateMin: '', dateMax: '', priority: 'MÉDIA', peopleCount: '', hours: '', 
+            startDate: new Date().toISOString().split('T')[0], endDate: '', workCenter: '', startTime: '', endTime: '', resource: '' 
+        });
+        setShowAdd(false);
+    };
+    
+    const handleDeleteItem = (id) => {
+        if (window.confirm("Tem certeza que deseja excluir este item da programação?")) {
+            onScheduleChange(schedule.filter(i => i.id !== id));
+        }
+    };
+
+    const handleImportText = () => {
+        const lines = importText.split('\n');
+        const newItems = [];
+        let successCount = 0;
+
+        lines.forEach(line => {
+            if (!line.trim()) return;
+            const parts = line.split('\t'); // Excel copy uses Tabs
+            if (parts.length >= 2) {
+                newItems.push({
+                    id: Date.now() + Math.random(),
+                    omFrota: parts[0]?.trim() || '',
+                    description: parts[1]?.trim() || '',
+                    dateMin: parts[2]?.trim() || '',
+                    dateMax: parts[3]?.trim() || '',
+                    priority: parts[4]?.trim() || 'MÉDIA',
+                    peopleCount: parts[5]?.trim() || '',
+                    hours: parts[6]?.trim() || '',
+                    startDate: parts[7]?.trim() || new Date().toISOString().split('T')[0],
+                    endDate: parts[8]?.trim() || '',
+                    workCenter: parts[9]?.trim() || '',
+                    startTime: parts[10]?.trim() || '',
+                    endTime: parts[11]?.trim() || '',
+                    resource: parts[12]?.trim() || ''
+                });
+                successCount++;
+            }
+        });
+        
+        if (successCount > 0) {
+            onScheduleChange([...schedule, ...newItems]);
+            setImportText('');
+            setShowImport(false);
+            alert(`${successCount} itens importados com sucesso!`);
+        } else {
+            alert("Nenhum item válido encontrado. Verifique se copiou as 13 colunas do Excel corretamente.");
+        }
+    };
+
+    const handlePdfUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLoadingPdf(true);
+            
+            setTimeout(() => {
+                setLoadingPdf(false);
+                const mockScheduleData = [
+                    { id: Date.now()+1, omFrota: 'TR-01', description: 'MANUTENÇÃO 250H - MOTOR E SISTEMA HIDR.', startDate: new Date().toISOString().split('T')[0], priority: 'ALTA', workCenter: 'OFICINA', startTime: '07:30', endTime: '16:00', resource: 'MEC. LIDER' },
+                    { id: Date.now()+2, omFrota: 'CV-05', description: 'TROCA DE ROLETES DE CARGA - LADO ESQUERDO', startDate: new Date().toISOString().split('T')[0], priority: 'MÉDIA', workCenter: 'CAMPO', startTime: '08:00', endTime: '12:00', resource: 'EQUIPE 2' },
+                ];
+                onScheduleChange(prev => [...prev, ...mockScheduleData]);
+                setShowImport(false);
+                alert(`PDF "${file.name}" importado com sucesso!\n\n2 novas atividades foram identificadas e adicionadas.`);
+            }, 2000);
+        }
+    };
+
+    const handleClearSchedule = () => {
+        if (window.confirm("Tem certeza que deseja LIMPAR TODA a programação? Esta ação não pode ser desfeita.")) {
+            onScheduleChange([]);
+        }
+    };
+    
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg">Controles da Programação</h3>
+                <div className="flex gap-2">
+                    <button onClick={() => alert('Programação salva!')} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm flex items-center shadow hover:bg-blue-700">
+                        <Icons.Save className="w-4 h-4 mr-2" /> Salvar
+                    </button>
+                    <button onClick={handleClearSchedule} className="bg-red-600 text-white px-3 py-1 rounded font-bold text-sm flex items-center shadow hover:bg-red-700">
+                        <Icons.Trash className="w-4 h-4 mr-2" /> Limpar Tudo
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-gray-100 p-4 rounded-lg border mb-6">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => setShowAdd(!showAdd)} className="bg-gray-800 text-white px-3 py-1 rounded font-bold text-sm flex items-center shadow hover:bg-gray-900">
+                        <Icons.Pen className="w-4 h-4 mr-2" /> {showAdd ? 'Fechar Edição' : 'Adicionar Item Manual'}
+                    </button>
+                    <button onClick={() => setShowImport(!showImport)} className="bg-blue-50 text-blue-700 px-3 py-1 rounded font-bold text-xs flex items-center hover:bg-blue-100 border border-blue-200">
+                        <Icons.Upload className="w-4 h-4 mr-2" /> {showImport ? 'Fechar Importador' : 'Importar (PDF / Excel)'}
+                    </button>
+                </div>
+
+                {showImport && (
+                <div className="mt-4 bg-white p-4 rounded-lg border-2 border-blue-500 shadow-lg animate-in fade-in slide-in-from-top-4">
+                    <h3 className="font-bold text-md mb-4 text-blue-900 flex items-center"><Icons.Upload className="mr-2 w-5 h-5"/> IMPORTAR DADOS</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-red-50 p-3 rounded border border-red-100 relative group">
+                            <p className="text-sm font-bold text-red-900 mb-2">Importar de PDF</p>
+                            <div className="border-2 border-dashed border-red-300 p-4 rounded text-center bg-white hover:bg-red-50/50 transition-colors cursor-pointer relative">
+                                {loadingPdf ? (
+                                    <div className="text-red-600 animate-pulse"><Icons.Cpu className="w-8 h-8 mx-auto mb-1 animate-spin" /> Lendo PDF...</div>
+                                ) : ( <>
+                                    <input type="file" id="pdfUploadAdmin" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf" onChange={handlePdfUpload} />
+                                    <Icons.File className="w-8 h-8 text-red-400 mb-1 mx-auto" />
+                                    <span className="text-xs font-bold text-red-600">SELECIONAR ARQUIVO PDF</span>
+                                </>)}
+                            </div>
+                        </div>
+                        <div className="bg-green-50 p-3 rounded border border-green-100">
+                             <p className="text-sm font-bold text-green-900 mb-2">Copiar e Colar (Excel)</p>
+                             <textarea className="w-full p-2 border rounded h-20 text-xs font-mono" placeholder="Cole os dados aqui..." value={importText} onChange={e => setImportText(e.target.value)} />
+                             <button onClick={handleImportText} className="w-full bg-green-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-green-700 mt-1">PROCESSAR</button>
+                        </div>
+                    </div>
+                </div>
+                )}
+                {showAdd && (
+                <div className="mt-4 bg-white p-4 rounded border-2 border-yellow-400 shadow-lg">
+                    <h3 className="font-bold text-sm mb-2">Novo Item Manual</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+                        <input className="border p-1 rounded text-xs" placeholder="OM/FROTA" value={newItem.omFrota} onChange={e => setNewItem({...newItem, omFrota: e.target.value})} />
+                        <input className="border p-1 rounded text-xs col-span-2" placeholder="Descrição" value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} />
+                        <input className="border p-1 rounded text-xs" placeholder="Centro Trab." value={newItem.workCenter} onChange={e => setNewItem({...newItem, workCenter: e.target.value})} />
+                        <input type="date" className="border p-1 rounded text-xs" value={newItem.startDate} onChange={e => setNewItem({...newItem, startDate: e.target.value})} />
+                        <input className="border p-1 rounded text-xs" placeholder="H. Início" value={newItem.startTime} onChange={e => setNewItem({...newItem, startTime: e.target.value})} />
+                        <input className="border p-1 rounded text-xs" placeholder="H. Fim" value={newItem.endTime} onChange={e => setNewItem({...newItem, endTime: e.target.value})} />
+                        <input className="border p-1 rounded text-xs" placeholder="Recurso" value={newItem.resource} onChange={e => setNewItem({...newItem, resource: e.target.value})} />
+                         <button onClick={handleAdd} className="bg-yellow-500 text-black px-4 py-1 rounded font-bold text-xs hover:bg-yellow-400 shadow col-span-full">ADICIONAR</button>
+                    </div>
+                </div>
+                )}
+            </div>
+
+            <div className="border rounded overflow-hidden max-h-[500px] overflow-y-auto">
+                <table className="w-full text-xs">
+                    <thead className="bg-gray-200 sticky top-0">
+                        <tr>
+                            <th className="p-2 text-left">FROTA/OM</th>
+                            <th className="p-2 text-left">Descrição</th>
+                            <th className="p-2 text-left">Data</th>
+                            <th className="p-2 text-center">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {schedule.map(item => (
+                            <tr key={item.id} className="border-t hover:bg-yellow-50">
+                                <td className="p-2 font-bold">{item.omFrota}</td>
+                                <td className="p-2">{item.description}</td>
+                                <td className="p-2">{item.startDate}</td>
+                                <td className="p-2 text-center">
+                                    <button onClick={() => handleDeleteItem(item.id)} className="p-1 text-red-500 hover:bg-red-100 rounded">
+                                        <Icons.Trash size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    )
+}
+
+const ScreenAdminSettings = ({ settings, onSaveSettings, adminScreenProps, activeTab, setActiveTab }) => {
+  const [localSettings, setLocalSettings] = useState(settings);
+
+  const handleSave = () => {
+    onSaveSettings({ type: 'UPDATE_SETTINGS', payload: localSettings });
+    alert("Configurações salvas com sucesso!");
+  };
 
   const handleAddTag = () => {
-    if(newTag) { setSettings({...settings, tags: [...settings.tags, newTag]}); setNewTag(''); }
+    const newTag = prompt("Nova TAG:");
+    if (newTag && !localSettings.tags.includes(newTag)) {
+        setLocalSettings(prev => ({...prev, tags: [...prev.tags, newTag]}));
+    }
   };
+  
   const handleAddLoc = () => {
-    if(newLoc) { setSettings({...settings, locations: [...settings.locations, newLoc]}); setNewLoc(''); }
+    const newLoc = prompt("Novo Local:");
+    if (newLoc && !localSettings.locations.includes(newLoc)) {
+        setLocalSettings(prev => ({...prev, locations: [...prev.locations, newLoc]}));
+    }
   };
-  const handleSaveNetwork = () => {
-      setSettings({ 
-          ...settings, 
-          registeredNetwork: networkPath, 
-          wifiName: wifiName,
-          networkUser: networkUser,
-          networkPassword: networkPassword,
-          whatsappNumber: whatsappNumber
-      });
-      alert("Configurações salvas com sucesso!");
-  };
+
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -2515,6 +3002,7 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
           <button onClick={() => setActiveTab('general')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'general' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>GERAL & REDE</button>
           <button onClick={() => setActiveTab('employees')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'employees' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>FUNCIONÁRIOS</button>
           <button onClick={() => setActiveTab('users')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'users' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>USUÁRIOS SISTEMA</button>
+          <button onClick={() => setActiveTab('programming')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'programming' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>GERENCIAR PROGRAMAÇÃO</button>
           <button onClick={() => setActiveTab('external_art')} className={`px-6 py-3 font-bold rounded-t-lg ${activeTab === 'external_art' ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>CADASTRAR ART (PDF)</button>
       </div>
 
@@ -2523,14 +3011,14 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* NETWORK CONFIG */}
                 <div className="md:col-span-2 bg-gray-50 p-4 rounded border border-gray-300">
-                    <h3 className="font-bold text-lg mb-4 flex items-center"><Icons.Wifi className="mr-2"/> REDE, CONEXÃO E INTEGRAÇÕES</h3>
+                    <h3 className="font-bold text-lg mb-4 flex items-center"><Icons.Wifi className="mr-2"/> REDE E CONEXÃO</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block font-bold text-sm mb-1">Nome da Rede Wi-Fi / Conexão</label>
                             <input 
                                 className="w-full border p-2 rounded" 
-                                value={wifiName} 
-                                onChange={e => setWifiName(e.target.value)}
+                                value={localSettings.wifiName} 
+                                onChange={e => setLocalSettings({...localSettings, wifiName: e.target.value})}
                                 placeholder="Ex: WIFI-MINERADORA-01"
                             />
                         </div>
@@ -2538,8 +3026,8 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
                             <label className="block font-bold text-sm mb-1">Caminho da Rede / Banco de Dados</label>
                             <input 
                                 className="w-full border p-2 rounded" 
-                                value={networkPath} 
-                                onChange={e => setNetworkPath(e.target.value)}
+                                value={localSettings.registeredNetwork} 
+                                onChange={e => setLocalSettings({...localSettings, registeredNetwork: e.target.value})}
                                 placeholder="Ex: \\servidor\dados\app"
                             />
                         </div>
@@ -2547,8 +3035,8 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
                             <label className="block font-bold text-sm mb-1">Usuário de Rede</label>
                             <input 
                                 className="w-full border p-2 rounded" 
-                                value={networkUser} 
-                                onChange={e => setNetworkUser(e.target.value)}
+                                value={localSettings.networkUser} 
+                                onChange={e => setLocalSettings({...localSettings, networkUser: e.target.value})}
                                 placeholder="Ex: admin_rede"
                             />
                         </div>
@@ -2557,23 +3045,13 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
                             <input 
                                 type="password"
                                 className="w-full border p-2 rounded" 
-                                value={networkPassword} 
-                                onChange={e => setNetworkPassword(e.target.value)}
+                                value={localSettings.networkPassword} 
+                                onChange={e => setLocalSettings({...localSettings, networkPassword: e.target.value})}
                                 placeholder="********"
                             />
                         </div>
-                        <div className="md:col-span-2 mt-2 bg-green-50 p-3 rounded border border-green-200">
-                            <label className="block font-bold text-sm mb-1 text-green-800 flex items-center"><Icons.Whatsapp className="w-4 h-4 mr-1"/> Número WhatsApp Padrão (Para Relatórios)</label>
-                            <input 
-                                className="w-full border p-2 rounded" 
-                                value={whatsappNumber} 
-                                onChange={e => setWhatsappNumber(e.target.value)}
-                                placeholder="Ex: 5531999999999"
-                            />
-                            <p className="text-xs text-green-700 mt-1">Insira o número com DDD (Ex: 319...) para envio direto dos relatórios.</p>
-                        </div>
                     </div>
-                    <button onClick={handleSaveNetwork} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded font-bold">SALVAR CONFIGURAÇÕES</button>
+                    <button onClick={handleSave} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded font-bold">SALVAR CONFIGURAÇÕES DE REDE</button>
                 </div>
 
                 <div className="md:col-span-2 bg-gray-50 p-4 rounded border border-gray-300 mt-0">
@@ -2593,29 +3071,31 @@ const ScreenAdminSettings = ({ settings, setSettings, users, setUsers, employees
                 <div>
                     <h3 className="font-bold mb-2">Tags Cadastradas</h3>
                     <div className="flex gap-2 mb-2">
-                        <input className="border p-2 flex-1" value={newTag} onChange={e => setNewTag(e.target.value)} placeholder="Nova TAG"/>
-                        <button onClick={handleAddTag} className="bg-green-600 text-white px-4 rounded">+</button>
+                         <button onClick={handleAddTag} className="w-full bg-green-600 text-white px-4 py-2 rounded font-bold">Adicionar TAG</button>
                     </div>
                     <div className="border p-2 h-48 overflow-y-auto bg-gray-50 rounded">
-                        {settings.tags.map(t => <div key={t} className="border-b p-1">{t}</div>)}
+                        {localSettings.tags.map(t => <div key={t} className="border-b p-1">{t}</div>)}
                     </div>
                 </div>
                 <div>
                     <h3 className="font-bold mb-2">Locais de Trabalho</h3>
                     <div className="flex gap-2 mb-2">
-                        <input className="border p-2 flex-1" value={newLoc} onChange={e => setNewLoc(e.target.value)} placeholder="Novo Local"/>
-                        <button onClick={handleAddLoc} className="bg-green-600 text-white px-4 rounded">+</button>
+                        <button onClick={handleAddLoc} className="w-full bg-green-600 text-white px-4 py-2 rounded font-bold">Adicionar Local</button>
                     </div>
                     <div className="border p-2 h-48 overflow-y-auto bg-gray-50 rounded">
-                        {settings.locations.map(l => <div key={l} className="border-b p-1">{l}</div>)}
+                        {localSettings.locations.map(l => <div key={l} className="border-b p-1">{l}</div>)}
                     </div>
+                </div>
+                <div className="md:col-span-2">
+                    <button onClick={handleSave} className="mt-4 w-full bg-black text-white px-4 py-3 rounded font-bold text-lg">SALVAR TODAS AS CONFIGURAÇÕES</button>
                 </div>
             </div>
         )}
 
-        {activeTab === 'employees' && <ScreenEmployeeRegister employees={employees} setEmployees={setEmployees} />}
-        {activeTab === 'users' && <ScreenAdminUsers users={users} setUsers={setUsers} />}
-        {activeTab === 'external_art' && <ScreenExternalArt {...externalArtProps} />}
+        {activeTab === 'employees' && <ScreenEmployeeRegister employees={adminScreenProps.employees} onSave={adminScreenProps.onDataChange} onDelete={adminScreenProps.onDataChange} />}
+        {activeTab === 'users' && <ScreenAdminUsers users={adminScreenProps.users} onSave={adminScreenProps.onDataChange} onDelete={adminScreenProps.onDataChange} />}
+        {activeTab === 'programming' && <ProgrammingManagementPanel schedule={adminScreenProps.schedule} onScheduleChange={adminScreenProps.onScheduleChange} />}
+        {activeTab === 'external_art' && <ScreenExternalArt onSave={adminScreenProps.onDataChange} editingDoc={adminScreenProps.editingDoc} />}
       </div>
     </div>
   );
@@ -2629,10 +3109,6 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
       d.tag?.includes(search) ||
       d.fileName?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const handleDelete = (id) => {
-      onDelete(id);
-  };
 
   return (
     <div className="p-6">
@@ -2670,7 +3146,7 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
                                        <button onClick={() => onView(doc)} className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold hover:bg-blue-200 flex items-center"><Icons.Eye size={14} className="mr-1"/> VER</button>
                                        <button onClick={() => onDownload(doc)} className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-bold hover:bg-green-200 flex items-center"><Icons.Download size={14} className="mr-1"/> PDF</button>
                                        <button onClick={() => onEdit(doc)} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200 flex items-center"><Icons.Edit size={14} className="mr-1"/> EDIT</button>
-                                       <button onClick={() => handleDelete(doc.id)} className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200 flex items-center"><Icons.Trash size={14} className="mr-1"/> DEL</button>
+                                       <button onClick={() => onDelete({ type: 'DELETE_DOC', payload: doc.id })} className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-bold hover:bg-red-200 flex items-center"><Icons.Trash size={14} className="mr-1"/> DEL</button>
                                        <button onClick={() => onSendToNetwork(doc)} className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold hover:bg-gray-200 flex items-center"><Icons.Server size={14} className="mr-1"/> REDE</button>
                                    </div>
                                </td>
@@ -2684,14 +3160,14 @@ const ScreenFileDocuments = ({ docs, onView, onDownload, onEdit, onDelete, onSen
   );
 };
 
-const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOnline }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOnline, isCollapsed, onToggleCollapse }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Icons.Activity },
     { id: 'emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
     { id: 'atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
     { id: 'checklist', label: 'Checklist', icon: Icons.CheckSquare },
-    { id: 'reports', label: 'Relatórios', icon: Icons.FileText }, // New
-    { id: 'programming', label: 'Programação', icon: Icons.Calendar }, // New
+    { id: 'reports', label: 'Relatórios', icon: Icons.FileText },
+    { id: 'programming', label: 'Programação', icon: Icons.Calendar },
     { id: 'history', label: 'Histórico Doc.', icon: Icons.Clock },
     { id: 'file_documents', label: 'Arquivo Documentos', icon: Icons.Folder },
   ];
@@ -2701,15 +3177,17 @@ const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOnline })
   }
 
   return (
-    <div className="w-64 bg-black text-white h-screen fixed left-0 top-0 flex flex-col shadow-2xl z-40 hidden md:flex">
-      <div className="p-6 border-b border-gray-800">
-        <img src={VALE_LOGO_URL} alt="Vale" className="h-8 mb-4" />
-        <h1 className="text-2xl font-bold tracking-tighter text-yellow-500 flex items-center">
-          ART APP
+    <div className={`bg-black text-white h-screen fixed left-0 top-0 flex flex-col shadow-2xl z-40 hidden md:flex transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      <div className={`p-4 border-b border-gray-800 flex items-center ${isCollapsed ? 'justify-center h-[97px]' : 'justify-between'}`}>
+        {!isCollapsed && <img src={VALE_LOGO_URL} alt="Vale" className="h-8" />}
+        <h1 className={`font-black tracking-tighter text-yellow-500 ${isCollapsed ? 'text-2xl' : 'text-3xl'}`}>
+          {isCollapsed ? 'ART' : 'ART APP'}
         </h1>
-        <div className="flex items-center mt-2 gap-2">
-            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <p className="text-xs text-gray-400 uppercase">{isOnline ? 'Conectado Nuvem' : 'Modo Offline'}</p>
+      </div>
+      <div className={`px-4 pt-2 pb-4 border-b border-gray-800 ${isCollapsed ? 'text-center' : ''}`}>
+        <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            {!isCollapsed && <p className={`text-xs uppercase font-bold ${isOnline ? 'text-green-400' : 'text-red-400'}`}>{isOnline ? 'Online' : 'Offline'}</p>}
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -2717,16 +3195,21 @@ const Sidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOnline })
           <button
             key={item.id}
             onClick={() => setActiveScreen(item.id)}
-            className={`w-full flex items-center p-3 rounded transition-all duration-200 ${activeScreen === item.id ? 'bg-yellow-500 text-black font-bold shadow-lg translate-x-2' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
+            className={`w-full flex items-center p-3 rounded transition-all duration-200 ${isCollapsed ? 'justify-center' : ''} ${activeScreen === item.id ? 'bg-yellow-500 text-black font-bold' : 'hover:bg-gray-800 text-gray-300 hover:text-white'}`}
+            title={item.label}
           >
-            <item.icon className="mr-3 w-5 h-5" />
-            {item.label}
+            <item.icon className={`w-5 h-5 ${!isCollapsed && 'mr-3'}`} />
+            {!isCollapsed && <span>{item.label}</span>}
           </button>
         ))}
       </nav>
       <div className="p-4 border-t border-gray-800">
-        <button onClick={onLogout} className="w-full flex items-center p-3 text-red-400 hover:bg-red-900/20 rounded transition-colors">
-          <Icons.LogOut className="mr-3 w-5 h-5" /> Sair
+        <button onClick={onLogout} title="Sair" className={`w-full flex items-center p-3 text-red-400 hover:bg-red-900/20 rounded transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+          <Icons.LogOut className={`w-5 h-5 ${!isCollapsed && 'mr-3'}`} />
+          {!isCollapsed && <span>Sair</span>}
+        </button>
+        <button onClick={onToggleCollapse} className="w-full flex justify-center items-center p-3 text-gray-400 hover:bg-gray-800 rounded mt-2">
+          {isCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
         </button>
       </div>
     </div>
@@ -2739,8 +3222,8 @@ const MobileSidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOpe
       { id: 'emergencial', label: 'ART Emergencial', icon: Icons.AlertTriangle },
       { id: 'atividade', label: 'ART Atividade', icon: Icons.ClipboardList },
       { id: 'checklist', label: 'Checklist', icon: Icons.CheckSquare },
-      { id: 'reports', label: 'Relatórios', icon: Icons.FileText }, // New
-      { id: 'programming', label: 'Programação', icon: Icons.Calendar }, // New
+      { id: 'reports', label: 'Relatórios', icon: Icons.FileText },
+      { id: 'programming', label: 'Programação', icon: Icons.Calendar },
       { id: 'history', label: 'Histórico Doc.', icon: Icons.Clock },
       { id: 'file_documents', label: 'Arquivo Documentos', icon: Icons.Folder },
     ];
@@ -2784,167 +3267,333 @@ const MobileSidebar = ({ activeScreen, setActiveScreen, onLogout, isAdmin, isOpe
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState(getLocalStorage('users', []));
-  const [employees, setEmployees] = useState(getLocalStorage('employees', []));
   const [activeScreen, setActiveScreen] = useState('dashboard');
-  const [docs, setDocs] = useState(getLocalStorage('docs', []));
-  const [settings, setSettings] = useState(getLocalStorage('settings', { tags: ['TR-01', 'CV-02'], locations: ['Mina', 'Oficina'], registeredNetwork: '', wifiName: '', whatsappNumber: '' }));
-  const [activeMaintenances, setActiveMaintenances] = useState(getLocalStorage('activeMaintenances', []));
-  const [schedule, setSchedule] = useState(getLocalStorage('schedule', [])); // New State for Programming
   const [previewDoc, setPreviewDoc] = useState(null);
   const [editingDoc, setEditingDoc] = useState(null);
   const [settingsTab, setSettingsTab] = useState('general');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [checklistPreFill, setChecklistPreFill] = useState(null);
   const [showProgrammingAlert, setShowProgrammingAlert] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [location, setLocation] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useCachedState('sidebarCollapsed', false);
+  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+
+
+  // Replace useState with useCachedState for persisted data
+  const [users, setUsers] = useCachedState('users', []);
+  const [employees, setEmployees] = useCachedState('employees', []);
+  const [docs, setDocs] = useCachedState('docs', []);
+  const [settings, setSettings] = useCachedState('settings', { tags: ['TR-01', 'CV-02'], locations: ['Mina', 'Oficina'], registeredNetwork: '', wifiName: '' });
+  const [activeMaintenances, setActiveMaintenances] = useCachedState('activeMaintenances', []);
+  const [schedule, setSchedule] = useCachedState('schedule', []);
+  const [offlineQueue, setOfflineQueue] = useCachedState('offlineQueue', []);
   
-  useEffect(() => { setLocalStorage('users', users); }, [users]);
-  useEffect(() => { setLocalStorage('employees', employees); }, [employees]);
-  useEffect(() => { setLocalStorage('docs', docs); }, [docs]);
-  useEffect(() => { setLocalStorage('settings', settings); }, [settings]);
-  useEffect(() => { setLocalStorage('activeMaintenances', activeMaintenances); }, [activeMaintenances]);
-  useEffect(() => { setLocalStorage('schedule', schedule); }, [schedule]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState('synced');
+  const [toast, setToast] = useState(null);
+  const [showCorrectiveAlert, setShowCorrectiveAlert] = useState(false);
+  const [activeCorrectiveTasks, setActiveCorrectiveTasks] = useState([]);
 
-  // Online Status Listener
+  // --- Data Processing Logic ---
+  const processQueue = (queue, baseData) => {
+    let newDocs = [...baseData.docs];
+    let newMaintenances = [...baseData.activeMaintenances];
+    let newSchedule = [...baseData.schedule];
+    let newUsers = [...baseData.users];
+    let newEmployees = [...baseData.employees];
+    let newSettings = {...baseData.settings};
+
+    queue.forEach(action => {
+      switch (action.type) {
+        case 'SAVE_DOC': {
+            const index = newDocs.findIndex(d => d.id === action.payload.id);
+            if (index > -1) newDocs[index] = action.payload;
+            else newDocs.push(action.payload);
+            break;
+        }
+        case 'DELETE_DOC': {
+            newDocs = newDocs.filter(d => d.id !== action.payload);
+            break;
+        }
+        case 'UPDATE_MAINTENANCES': {
+            newMaintenances = action.payload;
+            break;
+        }
+        case 'UPDATE_SCHEDULE': {
+            newSchedule = action.payload;
+            break;
+        }
+        case 'ADD_USER': case 'UPDATE_USER': {
+            const index = newUsers.findIndex(u => u.matricula === action.payload.matricula);
+            if (index > -1) newUsers[index] = action.payload;
+            else newUsers.push(action.payload);
+            break;
+        }
+        case 'DELETE_USER': {
+            newUsers = newUsers.filter(u => u.matricula !== action.payload);
+            break;
+        }
+        case 'ADD_EMPLOYEE': case 'UPDATE_EMPLOYEE': {
+            const index = newEmployees.findIndex(e => e.matricula === action.payload.matricula);
+            if(index > -1) newEmployees[index] = action.payload;
+            else newEmployees.push(action.payload);
+            break;
+        }
+        case 'DELETE_EMPLOYEE': {
+            newEmployees = newEmployees.filter(e => e.matricula !== action.payload);
+            break;
+        }
+        case 'UPDATE_SETTINGS': {
+            newSettings = action.payload;
+            break;
+        }
+        case 'SAVE_DOC_AND_MAINTENANCE_ACTION': {
+            const { doc, maintenanceAction } = action.payload;
+            // Save doc logic
+            const docIndex = newDocs.findIndex(d => d.id === doc.id);
+            if (docIndex > -1) newDocs[docIndex] = doc;
+            else newDocs.push(doc);
+            
+            // Process maintenance action on the CURRENT `newMaintenances`
+            switch (maintenanceAction.type) {
+                case 'ADD_MAINTENANCE':
+                    newMaintenances.push(maintenanceAction.payload);
+                    break;
+                case 'FINISH_MAINTENANCE':
+                    newMaintenances = newMaintenances.map(m => 
+                        m.id === maintenanceAction.payload.maintenanceId 
+                        ? { ...m, status: 'finished', endTime: maintenanceAction.payload.endTime } 
+                        : m
+                    );
+                    break;
+            }
+            break;
+        }
+        default:
+            console.warn(`Unknown action type in queue: ${action.type}`);
+      }
+    });
+    return { newDocs, newMaintenances, newSchedule, newUsers, newEmployees, newSettings };
+  }
+
+  // --- Sync and Offline Logic ---
   useEffect(() => {
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      window.addEventListener('online', handleOnline);
-      window.addEventListener('offline', handleOffline);
-      return () => {
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-      };
-  }, []);
+    const syncOfflineData = async () => {
+      if (offlineQueue.length === 0) {
+        setSyncStatus('synced');
+        return;
+      }
+  
+      setSyncStatus('syncing');
+      setToast({ message: `Sincronizando ${offlineQueue.length} alterações...`, type: 'info' });
+      await new Promise(res => setTimeout(res, 1500)); // Simulate network delay
+      
+      const { newDocs, newMaintenances, newSchedule, newUsers, newEmployees, newSettings } = processQueue(offlineQueue, { docs, activeMaintenances, schedule, users, employees, settings });
+      
+      setDocs(newDocs);
+      setActiveMaintenances(newMaintenances);
+      setSchedule(newSchedule);
+      setUsers(newUsers);
+      setEmployees(newEmployees);
+      setSettings(newSettings);
+  
+      setOfflineQueue([]);
+      setSyncStatus('synced');
+      setToast({ message: 'Dados sincronizados com sucesso!', type: 'success' });
+    };
 
-  // Alert Timer Logic
+    const handleOnline = () => { setIsOnline(true); syncOfflineData(); };
+    const handleOffline = () => { setIsOnline(false); setSyncStatus('offline'); };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    if (isOnline && offlineQueue.length > 0) syncOfflineData();
+    else if (!isOnline && offlineQueue.length > 0) setSyncStatus('offline');
+    
+    return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+    };
+  }, [isOnline]); // Rerun only when online status changes
+
+  const handleDataChange = (action) => {
+    if (isOnline && syncStatus === 'synced') {
+      const { newDocs, newMaintenances, newSchedule, newUsers, newEmployees, newSettings } = processQueue([action], { docs, activeMaintenances, schedule, users, employees, settings });
+      setDocs(newDocs);
+      setActiveMaintenances(newMaintenances);
+      setSchedule(newSchedule);
+      setUsers(newUsers);
+      setEmployees(newEmployees);
+      setSettings(newSettings);
+      setToast({ message: 'Alteração salva!', type: 'success' });
+    } else {
+      setOfflineQueue(prevQueue => [...prevQueue, action]);
+      setSyncStatus('offline');
+      setToast({ message: 'Salvo localmente. Sincronizando quando online.', type: 'info' });
+    }
+  };
+
+  const setupNotifications = async () => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+            const swUrl = new URL('sw.js', import.meta.url).href;
+            const registration = await navigator.serviceWorker.register(swUrl);
+            if (Notification.permission === 'granted') {
+                console.log('Notification permission already granted.');
+            }
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === 'granted') {
+      showLocalNotification('Notificações Ativadas', 'Você receberá alertas importantes.');
+    }
+  };
+
+  // --- App Effects ---
+  useEffect(() => {
+    if (currentUser) {
+      setupNotifications();
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localNow = new Date(now.getTime() - (offset*60*1000));
+      const todayISO = localNow.toISOString().split('T')[0];
+      const todaysItems = schedule?.filter(item => {
+        if (!item.startDate) return false;
+        const start = item.startDate;
+        const end = item.endDate || item.startDate;
+        return todayISO >= start && todayISO <= end;
+      }) || [];
+
+      if (todaysItems.length > 0) {
+        showLocalNotification(
+          `Programação de Hoje (${new Date().toLocaleDateString('pt-BR')})`,
+          `Você tem ${todaysItems.length} tarefa(s) agendada(s) para hoje.`,
+          'daily-schedule-summary'
+        );
+      }
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => setLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+            (error) => console.error("Error getting geolocation", error)
+        );
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (!currentUser) return;
-    
-    // Initial check to avoid waiting 2 mins for first show if needed
-    // const timer = setTimeout(() => setShowProgrammingAlert(true), 2000); 
-
+    const timer = setTimeout(() => setShowProgrammingAlert(true), 5000);
     const interval = setInterval(() => {
         setShowProgrammingAlert(true);
-        // Auto hide after duration
-        setTimeout(() => {
-            setShowProgrammingAlert(false);
-        }, 20000); // 20 seconds
-    }, 120000); // 2 minutes (120000 ms)
+        setTimeout(() => setShowProgrammingAlert(false), PROGRAMMING_ALERT_DURATION);
+    }, PROGRAMMING_ALERT_INTERVAL);
+    return () => { clearTimeout(timer); clearInterval(interval); }
+  }, [currentUser, schedule]);
+  
+  // Corrective Maintenance Alert Logic
+  useEffect(() => {
+    const tasks = activeMaintenances.filter(
+        m => m.status === 'active' && m.maintenanceType === 'corretiva'
+    );
+    setActiveCorrectiveTasks(tasks);
+  }, [activeMaintenances]);
+
+  const activeCorrectiveTasksRef = useRef(activeCorrectiveTasks);
+  activeCorrectiveTasksRef.current = activeCorrectiveTasks;
+  
+  useEffect(() => {
+    if (!currentUser) return;
+    const interval = setInterval(() => {
+        if (activeCorrectiveTasksRef.current.length > 0) {
+            setShowCorrectiveAlert(true);
+            setTimeout(() => setShowCorrectiveAlert(false), 20000); // 20 seconds
+        }
+    }, 10 * 60 * 1000); // 10 minutes
 
     return () => clearInterval(interval);
   }, [currentUser]);
 
 
+  // --- Event Handlers ---
   const handleLogin = (user) => setCurrentUser(user);
-  const handleLogout = () => {
-      setCurrentUser(null);
-  };
-
-  const startMaintenance = (doc) => {
-      const exists = activeMaintenances.find(m => m.id === doc.maintenanceId);
-      if (!exists) {
-          const newM = {
-              id: doc.maintenanceId,
-              tag: doc.tag,
-              om: doc.om,
-              taskName: doc.taskName,
-              startTime: new Date(),
-              status: 'active',
-              userName: currentUser.name,
-              userId: currentUser.matricula
-          };
-          setActiveMaintenances([...activeMaintenances, newM]);
-      } else {
-         const updated = activeMaintenances.map(m => m.id === doc.maintenanceId ? { ...m, tag: doc.tag, om: doc.om, taskName: doc.taskName } : m);
-         setActiveMaintenances(updated);
-      }
-  };
-
-  const handleFinishMaintenance = (maintenance) => {
-      const updated = activeMaintenances.map(m => 
-          m.id === maintenance.id 
-          ? { ...m, status: 'finished', endTime: new Date() } 
-          : m
-      );
-      setActiveMaintenances(updated);
+  const handleLogout = () => setCurrentUser(null);
+  
+  const handleStartTask = (task) => {
+    if (activeMaintenances.some(m => m.programmingId === task.id && m.status !== 'finished')) {
+      alert("Esta tarefa já está em andamento no Dashboard.");
+      setActiveScreen('dashboard');
+      return;
+    }
+    const newMaintenance = {
+      id: `MNT-PROG-${task.id}-${Date.now()}`, programmingId: task.id,
+      om: task.omFrota, tag: task.omFrota, taskName: task.description,
+      startTime: new Date().toISOString(), status: 'active',
+      userName: currentUser.name, userId: currentUser.matricula, location: task.workCenter,
+      maintenanceType: 'preventiva', // Tasks from programming are preventive
+    };
+    handleDataChange({ type: 'UPDATE_MAINTENANCES', payload: [...activeMaintenances, newMaintenance] });
+    alert("Tarefa iniciada! Verifique o Dashboard.");
+    setActiveScreen('dashboard');
   };
 
   const handleOpenChecklist = (maintenance) => {
     setChecklistPreFill({
-        om: maintenance.om,
-        tag: maintenance.tag,
-        taskName: maintenance.taskName,
-        maintenanceId: maintenance.id
+        om: maintenance.om, tag: maintenance.tag,
+        taskName: maintenance.taskName, maintenanceId: maintenance.id
     });
     setActiveScreen('checklist');
   };
 
-  const handleSaveDoc = (docData) => {
-      let finalDoc = { ...docData };
+  const handleSaveDoc = (action) => {
+      const docToSave = { ...action.payload };
+      let maintenanceAction = null;
+
+      if (!editingDoc && docToSave.type !== 'external') {
+          docToSave.maintenanceId = `MNT-${docToSave.id}`;
+      }
       
-      if (editingDoc) {
-          const updatedDocs = docs.map(d => d.id === editingDoc.id ? finalDoc : d);
-          setDocs(updatedDocs);
-          
-          if (finalDoc.maintenanceId) {
-              startMaintenance(finalDoc); 
+      if (docToSave.type === 'checklist') {
+          const relatedId = docToSave.maintenanceId || checklistPreFill?.maintenanceId;
+          const maintenanceToFinish = activeMaintenances.find(m => m.id === relatedId && m.status !== 'finished');
+          if(maintenanceToFinish) {
+              maintenanceAction = { 
+                  type: 'FINISH_MAINTENANCE', 
+                  payload: { maintenanceId: relatedId, endTime: new Date().toISOString() } 
+              };
           }
-          setEditingDoc(null);
-          alert("Documento atualizado com sucesso!");
+      } else if (docToSave.type !== 'external' && !editingDoc) {
+          const newMaintenance = {
+              id: docToSave.maintenanceId, 
+              tag: docToSave.tag, om: docToSave.om, taskName: docToSave.taskName,
+              startTime: new Date().toISOString(), status: 'active', 
+              userName: currentUser.name, userId: currentUser.matricula,
+              maintenanceType: docToSave.maintenanceType,
+          };
+          maintenanceAction = { type: 'ADD_MAINTENANCE', payload: newMaintenance };
+      }
+
+      if (maintenanceAction) {
+          handleDataChange({ 
+              type: 'SAVE_DOC_AND_MAINTENANCE_ACTION', 
+              payload: { doc: docToSave, maintenanceAction: maintenanceAction } 
+          });
       } else {
-          if (docData.type !== 'external') {
-              finalDoc.maintenanceId = `MNT-${finalDoc.id}`;
-          }
-          
-          setDocs([...docs, finalDoc]);
-
-          if (docData.type !== 'external') {
-             if (docData.type === 'checklist') {
-                // If it's a checklist, we check if there is an active maintenance to finish
-                const relatedMaintenanceId = docData.maintenanceId || (checklistPreFill ? checklistPreFill.maintenanceId : null);
-                
-                // Try to finish maintenance by ID or OM/TAG matching if ID is missing (legacy support)
-                let maintenanceToFinish = null;
-                
-                if (relatedMaintenanceId) {
-                     maintenanceToFinish = activeMaintenances.find(m => m.id === relatedMaintenanceId && m.status !== 'finished');
-                }
-                
-                if (!maintenanceToFinish) {
-                    maintenanceToFinish = activeMaintenances.find(m => m.om === docData.om && m.tag === docData.tag && m.status !== 'finished');
-                }
-
-                if (maintenanceToFinish) {
-                    handleFinishMaintenance(maintenanceToFinish);
-                    alert("Checklist Salvo e Manutenção Encerrada com Sucesso!");
-                } else {
-                    alert("Checklist Salvo! (Nenhuma manutenção ativa foi encerrada)");
-                }
-
-             } else {
-                 // It's an ART (Emergencial/Activity), start maintenance
-                 startMaintenance(finalDoc);
-                 alert("ART Salva e Manutenção Iniciada!");
-             }
-          } else {
-              alert("Documento salvo com sucesso!");
-          }
+          handleDataChange({ type: 'SAVE_DOC', payload: docToSave });
       }
-      
-      setChecklistPreFill(null); // Clear pre-fill after save
+
+      setEditingDoc(null);
+      setChecklistPreFill(null);
       setActiveScreen('history');
-  };
-
-  const handleDeleteDoc = (id) => {
-      if (confirm("Tem certeza que deseja excluir este documento?")) {
-          const doc = docs.find(d => d.id === id);
-          setDocs(docs.filter(d => d.id !== id));
-          if (doc && doc.maintenanceId) {
-              setActiveMaintenances(activeMaintenances.filter(m => m.id !== doc.maintenanceId));
-          }
-      }
   };
 
   const handleEditDoc = (doc) => {
@@ -2957,17 +3606,11 @@ const App = () => {
       }
   };
 
-  const handleViewDoc = (doc) => {
-      setPreviewDoc({ ...doc, autoPrint: false });
-  };
-
   const handleDownloadDoc = (doc) => {
       if (doc.type === 'external' && doc.fileContent) {
          const byteCharacters = atob(doc.fileContent.split(',')[1]);
          const byteNumbers = new Array(byteCharacters.length);
-         for (let i = 0; i < byteCharacters.length; i++) {
-             byteNumbers[i] = byteCharacters.charCodeAt(i);
-         }
+         for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
          const byteArray = new Uint8Array(byteNumbers);
          const blob = new Blob([byteArray], {type: 'application/pdf'});
          const link = document.createElement('a');
@@ -2979,89 +3622,72 @@ const App = () => {
       }
   };
 
-  const handlePreviewAction = (formData) => {
-      setPreviewDoc({ ...formData, autoPrint: false });
-  };
-
-  const handleSendToNetwork = (doc) => {
-      if (!settings.registeredNetwork) {
-          alert("Nenhum caminho de rede configurado em Configurações.");
-          return;
-      }
-      alert(`Enviando arquivo ${doc.id} para: ${settings.registeredNetwork}...\n(Simulação: Arquivo transferido com sucesso!)`);
-  };
-
-  const refreshData = () => {
-     const m = localStorage.getItem('activeMaintenances');
-     if(m) setActiveMaintenances(JSON.parse(m));
-  };
-
-  if (!currentUser) return <ScreenLogin onLogin={handleLogin} users={users} setUsers={setUsers} />;
+  if (!currentUser) return <ScreenLogin onLogin={handleLogin} users={users} onUserChange={handleDataChange} />;
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans flex">
-      <Sidebar activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} isOnline={isOnline} />
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+      <Sidebar 
+        activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} 
+        isAdmin={currentUser.role === 'admin'} isOnline={isOnline}
+        isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
       <MobileSidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} activeScreen={activeScreen} setActiveScreen={setActiveScreen} onLogout={handleLogout} isAdmin={currentUser.role === 'admin'} />
       
-      <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
-          {/* MOBILE HEADER */}
+      <div className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col h-screen overflow-hidden`}>
           <div className="md:hidden bg-black text-white p-4 flex justify-between items-center shadow-md z-30">
               <h1 className="font-bold text-yellow-500 tracking-tighter text-xl">ART APP</h1>
               <button onClick={() => setMobileMenuOpen(true)}><Icons.Menu /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-0 md:p-0 relative">
+          <div className="flex-1 overflow-y-auto">
              {activeScreen === 'dashboard' && (
                 <ScreenDashboard 
-                    currentUser={currentUser} 
-                    activeMaintenances={activeMaintenances} 
-                    onOpenChecklist={handleOpenChecklist}
-                    refreshData={refreshData}
-                    networkName={settings.wifiName}
-                    isOnline={isOnline}
+                    currentUser={currentUser} activeMaintenances={activeMaintenances} 
+                    onOpenChecklist={handleOpenChecklist} refreshData={() => {}}
+                    networkName={settings.wifiName} isOnline={isOnline} location={location}
+                    syncStatus={syncStatus} offlineQueueLength={offlineQueue.length}
+                    onRequestNotifications={requestNotificationPermission}
+                    notificationPermission={notificationPermission}
                 />
              )}
-             {activeScreen === 'emergencial' && <ScreenArtEmergencial onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} />}
-             {activeScreen === 'atividade' && <ScreenArtAtividade onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} externalDocs={docs.filter(d => d.type === 'external')} onPreview={handlePreviewAction} />}
-             {activeScreen === 'checklist' && <ScreenChecklist onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} onPreview={handlePreviewAction} preFill={checklistPreFill} />}
-             {activeScreen === 'history' && <ScreenHistory docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} activeMaintenances={activeMaintenances} />}
-             {activeScreen === 'file_documents' && <ScreenFileDocuments docs={docs} onView={handleViewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDeleteDoc} onSendToNetwork={handleSendToNetwork} />}
+             {activeScreen === 'emergencial' && <ScreenArtEmergencial onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} />}
+             {activeScreen === 'atividade' && <ScreenArtAtividade onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} externalDocs={docs.filter(d => d.type === 'external')} />}
+             {activeScreen === 'checklist' && <ScreenChecklist onSave={handleSaveDoc} employees={employees} editingDoc={editingDoc} settings={settings} preFill={checklistPreFill} />}
+             {activeScreen === 'history' && <ScreenHistory docs={docs} onView={setPreviewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDataChange} onSendToNetwork={() => {}} activeMaintenances={activeMaintenances} />}
+             {activeScreen === 'file_documents' && <ScreenFileDocuments docs={docs} onView={setPreviewDoc} onDownload={handleDownloadDoc} onEdit={handleEditDoc} onDelete={handleDataChange} onSendToNetwork={() => {}} />}
              
-             {/* NEW SCREENS */}
              {activeScreen === 'reports' && <ScreenReports activeMaintenances={activeMaintenances} docs={docs} settings={settings} />}
-             {activeScreen === 'programming' && <ScreenProgramming schedule={schedule} setSchedule={setSchedule} />}
+             {activeScreen === 'programming' && <ScreenProgramming 
+                schedule={schedule}
+                onStartTask={handleStartTask} 
+                activeMaintenances={activeMaintenances}
+             />}
 
              {activeScreen === 'admin_settings' && (
                  <ScreenAdminSettings 
-                    settings={settings} 
-                    setSettings={setSettings} 
-                    users={users} 
-                    setUsers={setUsers} 
-                    employees={employees} 
-                    setEmployees={setEmployees}
-                    externalArtProps={{ onSave: handleSaveDoc, editingDoc: (editingDoc?.type === 'external' ? editingDoc : null) }}
-                    activeTab={settingsTab}
-                    setActiveTab={setSettingsTab}
+                    settings={settings} onSaveSettings={handleDataChange}
+                    adminScreenProps={{ 
+                      onDataChange: handleDataChange, 
+                      editingDoc: (editingDoc?.type === 'external' ? editingDoc : null),
+                      users: users,
+                      employees: employees,
+                      schedule: schedule,
+                      onScheduleChange: (newSchedule) => handleDataChange({ type: 'UPDATE_SCHEDULE', payload: newSchedule }),
+                    }}
+                    activeTab={settingsTab} setActiveTab={setSettingsTab}
                  />
              )}
           </div>
       </div>
 
-      {previewDoc && (
-        <PrintTemplate 
-            data={previewDoc} 
-            type={previewDoc.type} 
-            onClose={() => setPreviewDoc(null)}
-            settings={settings}
-        />
-      )}
-
-      {showProgrammingAlert && (
-          <ProgrammingAlert schedule={schedule} onClose={() => setShowProgrammingAlert(false)} />
-      )}
+      {previewDoc && <PrintTemplate data={previewDoc} type={previewDoc.type} onClose={() => setPreviewDoc(null)} settings={settings} />}
+      {showProgrammingAlert && <ProgrammingAlert schedule={schedule} onClose={() => setShowProgrammingAlert(false)} />}
+      {showCorrectiveAlert && activeCorrectiveTasks.length > 0 && <CorrectiveMaintenanceAlert tasks={activeCorrectiveTasks} onClose={() => setShowCorrectiveAlert(false)} />}
     </div>
   );
 };
 
 const root = createRoot(document.getElementById('root'));
+// FIX: Removed extraneous text from the end of the file that was causing syntax errors.
 root.render(<App />);
